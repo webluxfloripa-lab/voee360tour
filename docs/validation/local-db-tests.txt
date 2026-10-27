@@ -1,0 +1,23 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> voee360tour@0.1.0 db:test
+> node scripts/test-db.mjs
+
+PASS schema migration
+PASS optimistic revision conflict rejected
+PASS publish V1
+PASS publish V2 creates immutable version
+PASS restore persists V1 draft with new revision
+PASS restore leaves publication V2 unchanged
+PASS V3 publication is new snapshot
+PASS V1 V2 checkpoint V3 all retained
+PASS direct history mutation denied
+PASS cross-project restore rejected
+PASS cross-project media rejected
+PASS missing media blocks publication
+PASS ordinary user cannot read drafts
+PASS ordinary user cannot mutate clients
+PASS anonymous reads only complete published snapshot
+PASS anonymous publish denied
+PASS public signup blocked by database guard
+ALL DATABASE TESTS PASSED

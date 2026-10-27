@@ -1,0 +1,52 @@
+{
+  "name": "voee360tour",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 vite --host 127.0.0.1 --port 3000",
+    "build": "DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 vite build",
+    "start": "node .output/server/index.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests scripts --max-warnings 0",
+    "test": "vitest run",
+    "test:e2e": "DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 playwright test",
+    "db:test": "node scripts/test-db.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.118.0",
+    "@tanstack/react-router": "1.170.46",
+    "@tanstack/react-start": "1.169.4",
+    "jszip": "3.10.2",
+    "lucide-react": "1.61.0",
+    "nitro": "3.0.260903-beta",
+    "qrcode.react": "4.2.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.12",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
+    "@sparticuz/chromium": "143.0.4",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "eslint": "10.13.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.13.0",
+    "jsdom": "30.1.3",
+    "supabase": "2.122.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
+}

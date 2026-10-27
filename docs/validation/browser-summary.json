@@ -1,0 +1,24 @@
+{
+  "stats": {
+    "startTime": "2026-10-27T01:09:10.324Z",
+    "duration": 44715.708,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "viewports": [
+    {
+      "project": "mobile",
+      "width": 360,
+      "height": 800,
+      "touch": true
+    },
+    {
+      "project": "desktop",
+      "width": 1440,
+      "height": 1000,
+      "touch": false
+    }
+  ]
+}

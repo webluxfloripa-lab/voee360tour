@@ -1,0 +1,31 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> voee360tour@0.1.0 test:e2e
+> DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 playwright test
+
+[WebServer] (node:32) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+[WebServer] (node:45) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:45) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 10 tests using 1 worker
+
+(node:83) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [mobile] › tests/e2e/access.spec.ts:10:1 › login renders, password is hidden, has no horizontal overflow (2.6s)
+  ✓   2 [mobile] › tests/e2e/access.spec.ts:44:1 › admin cannot be accessed anonymously on direct refresh (3.1s)
+  ✓   3 [mobile] › tests/e2e/access.spec.ts:55:1 › recovery form never sets a password without a valid invitation (240ms)
+  ✓   4 [mobile] › tests/e2e/editor.spec.ts:3:1 › admin UI: upload real panoramas, independent return, save publish restore refresh (8.9s)
+  ✓   5 [mobile] › tests/e2e/editor.spec.ts:140:1 › create client and project through UI (4.1s)
+(node:220) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   6 [desktop] › tests/e2e/access.spec.ts:10:1 › login renders, password is hidden, has no horizontal overflow (1.6s)
+  ✓   7 [desktop] › tests/e2e/access.spec.ts:44:1 › admin cannot be accessed anonymously on direct refresh (2.1s)
+  ✓   8 [desktop] › tests/e2e/access.spec.ts:55:1 › recovery form never sets a password without a valid invitation (348ms)
+  ✓   9 [desktop] › tests/e2e/editor.spec.ts:3:1 › admin UI: upload real panoramas, independent return, save publish restore refresh (10.4s)
+  ✓  10 [desktop] › tests/e2e/editor.spec.ts:140:1 › create client and project through UI (3.3s)
+
+  10 passed (44.7s)

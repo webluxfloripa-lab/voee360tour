@@ -1,0 +1,13 @@
+begin;
+create index import_manifest_project_idx on private.media_import_manifest(project_id);
+create index projects_published_pointer_idx on public.projects(id,published_version_id);
+create index publication_new_version_idx on public.publication_events(project_id,new_version_id);
+create index published_snapshot_version_idx on public.published_tours(project_id,version_id);
+create index scene_panorama_idx on public.scenes(project_id,panorama_asset_id);
+create index scene_thumbnail_idx on public.scenes(project_id,thumbnail_asset_id);
+drop policy super_admin_read on public.published_tours;
+drop policy super_admin_read on public.media_assets;
+drop policy published_asset_read on public.media_assets;
+create policy public_asset_read on public.media_assets for select to anon using(private.asset_is_published(id));
+create policy admin_or_public_asset_read on public.media_assets for select to authenticated using((select private.is_super_admin()) or private.asset_is_published(id));
+commit;

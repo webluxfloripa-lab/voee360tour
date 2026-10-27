@@ -1,0 +1,95 @@
+import { describe, it, expect } from "vitest";
+import {
+  emptySnapshot,
+  snapshotSchema,
+  sceneSchema,
+  newArrow,
+  auditTour,
+  removeScene,
+  snapshotDiff,
+} from "../src/lib/model";
+import seven from "../fixtures/seven-import.json";
+const a = "11111111-1111-4111-8111-111111111111",
+  b = "22222222-2222-4222-8222-222222222222";
+function fixture() {
+  const s = emptySnapshot("Test");
+  s.firstSceneId = a;
+  s.scenes = [
+    sceneSchema.parse({
+      id: a,
+      name: "A",
+      panoramaAssetId: a,
+      thumbnailAssetId: a,
+      links: [newArrow(b, 32, -12)],
+    }),
+    sceneSchema.parse({
+      id: b,
+      name: "B",
+      panoramaAssetId: b,
+      thumbnailAssetId: b,
+      links: [newArrow(a, -67, -22)],
+    }),
+  ];
+  return s;
+}
+describe("project snapshots", () => {
+  it("accepts an empty draft and any number of scenes", () => {
+    expect(snapshotSchema.safeParse(emptySnapshot("Empty")).success).toBe(true);
+    expect(snapshotSchema.safeParse(fixture()).success).toBe(true);
+  });
+  it("preserves Seven exactly as pending media, 22 scenes 50 arrows 25 independent pairs", () => {
+    const parsed = snapshotSchema.parse(seven);
+    expect(parsed.scenes).toHaveLength(22);
+    expect(parsed.scenes.flatMap((s) => s.links)).toHaveLength(50);
+    expect(
+      new Set(parsed.scenes.flatMap((s) => s.links.map((a) => a.pairId))).size,
+    ).toBe(25);
+    expect(auditTour(parsed).reachable).toBe(22);
+    expect(auditTour(parsed).errors).toHaveLength(22);
+  });
+  it("rejects dangling links and duplicate IDs", () => {
+    const s = fixture();
+    s.scenes[0]!.links[0]!.to = "33333333-3333-4333-8333-333333333333";
+    expect(snapshotSchema.safeParse(s).success).toBe(false);
+    s.scenes.push(s.scenes[0]!);
+    expect(snapshotSchema.safeParse(s).success).toBe(false);
+  });
+  it("rejects invalid spherical coordinates", () => {
+    const s = fixture();
+    s.scenes[0]!.links[0]!.pitch = 81;
+    expect(snapshotSchema.safeParse(s).success).toBe(false);
+  });
+  it("independent return coordinates are retained", () => {
+    const s = fixture();
+    expect(s.scenes[0]!.links[0]!.yaw).toBe(32);
+    expect(s.scenes[1]!.links[0]!.yaw).toBe(-67);
+    expect(auditTour(s).warnings).toHaveLength(0);
+  });
+  it("scene deletion removes incoming and outgoing arrows and updates start", () => {
+    const s = removeScene(fixture(), a);
+    expect(s.scenes).toHaveLength(1);
+    expect(s.firstSceneId).toBe(b);
+    expect(s.scenes[0]!.links).toHaveLength(0);
+  });
+  it("flags isolated scenes, invisible routes, duplicate targets and missing returns", () => {
+    const s = fixture();
+    s.scenes[1]!.links = [];
+    s.scenes[0]!.links[0]!.visible = false;
+    expect(auditTour(s).errors.some((x) => x.includes("inacessível"))).toBe(
+      true,
+    );
+    expect(auditTour(s).warnings.some((x) => x.includes("sem retorno"))).toBe(
+      true,
+    );
+  });
+  it("summarizes historical differences by stable IDs", () => {
+    const s = fixture(),
+      next = removeScene(s, b);
+    expect(snapshotDiff(s, next)).toEqual({ scenes: -1, added: 0, removed: 2 });
+  });
+  it("never accepts hostile color CSS", () => {
+    const s = fixture();
+    s.branding.accent = "red;url(https://evil)";
+    expect(snapshotSchema.safeParse(s).success).toBe(false);
+  });
+});

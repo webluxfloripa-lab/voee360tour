@@ -1,0 +1,30 @@
+[
+  {
+    "test": "optimistic_conflict",
+    "passed": true
+  },
+  {
+    "test": "publish_v1_v2_restore_v1_to_draft_publish_v3",
+    "passed": true
+  },
+  {
+    "test": "historical_versions_immutable_and_retained",
+    "passed": true
+  },
+  {
+    "test": "cross_project_media_and_restore_denied",
+    "passed": true
+  },
+  {
+    "test": "missing_media_publication_atomic_failure",
+    "passed": true
+  },
+  {
+    "test": "ordinary_user_cannot_access_or_mutate_admin_data",
+    "passed": true
+  },
+  {
+    "test": "anonymous_can_only_read_complete_publication",
+    "passed": true
+  }
+]
