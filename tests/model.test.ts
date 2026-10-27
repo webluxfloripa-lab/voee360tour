@@ -65,6 +65,32 @@ describe("project snapshots", () => {
     expect(s.scenes[1]!.links[0]!.yaw).toBe(-67);
     expect(auditTour(s).warnings).toHaveLength(0);
   });
+  it("returns actionable diagnostics without inventing physical routes", () => {
+    const s = fixture();
+    s.scenes[1]!.links = [];
+    const inspection = auditTour(s);
+    expect(inspection.arrows).toBe(1);
+    expect(inspection.reachable).toBe(2);
+    expect(inspection.unreachableIds).toEqual([]);
+    expect(inspection.withoutExits).toEqual([b]);
+    expect(inspection.missingReturns).toEqual([
+      { sourceId: a, targetId: b, arrowId: s.scenes[0]!.links[0]!.id },
+    ]);
+    // A scene with a photograph but no arrows is NOT connected automatically.
+    const isolated = sceneSchema.parse({
+      id: "33333333-3333-4333-8333-333333333333",
+      name: "Sala não conectada",
+      panoramaAssetId: a,
+      thumbnailAssetId: a,
+      links: [],
+    });
+    s.scenes.push(isolated);
+    const next = auditTour(s);
+    expect(next.unreachableIds).toEqual([isolated.id]);
+    expect(next.errors).toContain(
+      "Sala não conectada: inacessível a partir do início.",
+    );
+  });
   it("scene deletion removes incoming and outgoing arrows and updates start", () => {
     const s = removeScene(fixture(), a);
     expect(s.scenes).toHaveLength(1);
