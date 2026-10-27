@@ -3471,3 +3471,185 @@ small {
     visibility: visible;
   }
 }
+
+
+/* Audit guide: readable and actionable on mobile, without fabricating routes. */
+.audit-explanation,
+.audit-guide,
+.audit-pending {
+  border: 1px solid #e2e8d7;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 15px 0;
+  background: #f7faf3;
+}
+.audit-explanation strong,
+.audit-guide h3,
+.audit-pending h3 {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.35;
+  color: #253c31;
+}
+.audit-explanation p,
+.audit-guide p,
+.audit-pending p {
+  margin: 0 0 14px;
+  color: #5b6b61;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.audit-explanation p:last-child {
+  margin-bottom: 0;
+}
+.audit-guide-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 10px 0 14px;
+}
+.audit-guide-fields label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: #4d5d53;
+  font-size: 12px;
+  font-weight: 600;
+}
+.audit-guide-fields select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  color: #283c31;
+  background: #fff;
+  border: 1px solid #cbd5c7;
+  border-radius: 8px;
+  padding: 9px;
+  font-size: 14px;
+}
+.audit-action {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  width: 100%;
+  font-size: 13px;
+}
+.audit-pending {
+  background: #fff;
+  border-color: #e5e9ed;
+}
+.audit-pending-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #e6ebea;
+  font-size: 13px;
+}
+.audit-pending-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.audit-pending-row button {
+  flex-shrink: 0;
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.audit-room-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.audit-room-list button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  min-height: 54px;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid #e2e7e9;
+  border-radius: 8px;
+  background: #fbfcfd;
+  text-align: left;
+  color: #2b3942;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.audit-room-list button span:last-child {
+  font-size: 11px;
+  color: #647b5a;
+}
+.audit-room-list button:hover,
+.audit-room-list button:focus-visible {
+  border-color: #85a66e;
+  background: #f2f8ee;
+}
+.audit-map-details {
+  margin: 18px 0 4px;
+  border-top: 1px solid #e5e8eb;
+  padding-top: 15px;
+}
+.audit-map-details summary {
+  cursor: pointer;
+  padding: 8px 0;
+  color: #4c6659;
+  font-size: 14px;
+  font-weight: 600;
+}
+.audit-map-details .graph-list {
+  margin-bottom: 12px;
+}
+.audit-map-details .graph-list > div {
+  font-size: 13px;
+  line-height: 1.45;
+}
+.audit-map-details .graph-list p {
+  overflow-wrap: anywhere;
+}
+.audit-stats {
+  font-size: 12px;
+}
+.audit-issue {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+  .modal-backdrop {
+    padding: 10px;
+  }
+  .modal.large {
+    max-height: calc(100dvh - 20px);
+    padding: 18px 14px;
+  }
+  .modal.large h2 {
+    font-size: 19px;
+  }
+  .audit-guide-fields,
+  .audit-room-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .audit-guide,
+  .audit-explanation,
+  .audit-pending {
+    padding: 12px;
+  }
+  .audit-pending-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .audit-pending-row button {
+    width: 100%;
+  }
+  .audit-map-details .connection-graph {
+    max-height: 300px;
+  }
+}
