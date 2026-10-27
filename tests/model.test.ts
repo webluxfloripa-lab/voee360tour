@@ -104,6 +104,11 @@ describe("project snapshots", () => {
     expect(auditTour(s).errors.some((x) => x.includes("inacessível"))).toBe(
       true,
     );
+    // An invisible arrow is not a visible path, so it needs no visible return.
+    expect(auditTour(s).warnings.some((x) => x.includes("sem retorno"))).toBe(
+      false,
+    );
+    s.scenes[0]!.links[0]!.visible = true;
     expect(auditTour(s).warnings.some((x) => x.includes("sem retorno"))).toBe(
       true,
     );
