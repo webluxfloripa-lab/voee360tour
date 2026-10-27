@@ -23,12 +23,17 @@ export const Route = createFileRoute("/t/$slug")({
   head: ({ loaderData: t }) => {
     if (!t) return {};
     const s = t.snapshot;
-    const image =
-      t.urls[
-        s.branding.ogAssetId ||
-          s.scenes.find((x) => x.id === s.firstSceneId)?.thumbnailAssetId ||
-          ""
-      ];
+    // Public, stable URL: social crawlers must not cache a signed URL
+    // which expires after one hour.
+    const imageAssetId =
+      s.branding.ogAssetId ||
+      s.scenes.find((x) => x.id === s.firstSceneId)?.thumbnailAssetId;
+    const canonicalOrigin = (
+      import.meta.env.VITE_SITE_URL || "https://voee360tour.vercel.app"
+    ).replace(/\/$/, "");
+    const image = imageAssetId
+      ? `${canonicalOrigin}/og/${encodeURIComponent(t.slug)}`
+      : null;
     return {
       meta: [
         { title: s.title + " · Tour 360°" },
@@ -46,6 +51,7 @@ export const Route = createFileRoute("/t/$slug")({
         ...(image
           ? [
               { property: "og:image", content: image },
+              { property: "og:image:secure_url", content: image },
               { property: "og:image:alt", content: "Explore " + s.title },
             ]
           : []),

@@ -1,40 +1,69 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { Snapshot } from "./model";
+
+type HistoryState = {
+  value: Snapshot;
+  past: Snapshot[];
+  future: Snapshot[];
+};
+
+const HISTORY_LIMIT = 100;
+
+/**
+ * Undo/redo must be based on the latest queued React state, not a stale
+ * render closure. This also preserves every intermediate edit when several
+ * updates happen in the same event or React batches them.
+ */
 export function useHistory(initial: Snapshot) {
-  const [value, setValue] = useState(initial),
-    past = useRef<Snapshot[]>([]),
-    future = useRef<Snapshot[]>([]);
+  const [history, setHistory] = useState<HistoryState>(() => ({
+    value: initial,
+    past: [],
+    future: [],
+  }));
+
   const commit = (next: Snapshot) => {
-    past.current = [...past.current, value].slice(-100);
-    future.current = [];
-    setValue(next);
+    setHistory((current) => ({
+      value: next,
+      past: [...current.past, current.value].slice(-HISTORY_LIMIT),
+      future: [],
+    }));
   };
+
   const undo = () => {
-    const next = past.current.pop();
-    if (next) {
-      future.current.push(value);
-      setValue(next);
-    }
+    setHistory((current) => {
+      if (!current.past.length) return current;
+      const previous = current.past[current.past.length - 1]!;
+      return {
+        value: previous,
+        past: current.past.slice(0, -1),
+        future: [...current.future, current.value].slice(-HISTORY_LIMIT),
+      };
+    });
   };
+
   const redo = () => {
-    const next = future.current.pop();
-    if (next) {
-      past.current.push(value);
-      setValue(next);
-    }
+    setHistory((current) => {
+      if (!current.future.length) return current;
+      const next = current.future[current.future.length - 1]!;
+      return {
+        value: next,
+        past: [...current.past, current.value].slice(-HISTORY_LIMIT),
+        future: current.future.slice(0, -1),
+      };
+    });
   };
+
   const reset = (next: Snapshot) => {
-    past.current = [];
-    future.current = [];
-    setValue(next);
+    setHistory({ value: next, past: [], future: [] });
   };
+
   return {
-    value,
+    value: history.value,
     commit,
     undo,
     redo,
     reset,
-    canUndo: past.current.length > 0,
-    canRedo: future.current.length > 0,
+    canUndo: history.past.length > 0,
+    canRedo: history.future.length > 0,
   };
 }
