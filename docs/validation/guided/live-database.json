@@ -1,0 +1,18 @@
+[
+  {
+    "result": [
+      {
+        "test": "isolated_project_pending_return_saved",
+        "passed": true
+      },
+      {
+        "test": "saved_pair_normalized_and_reloaded_with_independent_positions",
+        "passed": true
+      },
+      {
+        "test": "independent_edit_optimistic_conflict_and_no_publication",
+        "passed": true
+      }
+    ]
+  }
+]

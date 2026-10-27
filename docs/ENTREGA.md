@@ -40,7 +40,7 @@ O preview final respondeu HTTP 200, com cabeçalhos de segurança. A página fin
 ## Pendências
 
 1. Homologar com a titular a operação de um tour na sessão real. Ela informou ter acessado o aplicativo e redefinido a senha.
-2. Vincular o projeto Vercel existente ao Git em Settings → Git. Repositório privado já criado e código enviado: https://github.com/webluxfloripa-lab/voee360tour. Os 92 arquivos originais foram verificados por SHA, com árvore idêntica à versão local. A API disponível não reconecta projetos existentes e o navegador remoto exige login. O histórico anterior à importação segue preservado no bundle da entrega inicial.
+2. Acompanhar os checks de qualidade e os deployments das novas alterações. GitHub e Vercel já foram conectados pela titular e o vínculo foi verificado. O histórico anterior à importação segue preservado no bundle da entrega inicial.
 3. Ajustar Site URL/Redirect URLs do Auth para o domínio final. Enquanto isso, a página de primeiro acesso valida diretamente o link do convite quando o redirecionamento padrão não funcionar.
 4. Conferir fisicamente as 50 setas e conciliar com eventuais alterações posteriores do Seven original.
 5. Confirmar hospedagem autorizada para uso comercial antes de liberar tours de clientes pagantes. Nenhum pagamento/upgrade foi realizado.
@@ -55,3 +55,7 @@ O preview final respondeu HTTP 200, com cabeçalhos de segurança. A página fin
 - `voee360tour-history.bundle`: histórico Git local, restaurável com `git clone voee360tour-history.bundle voee360tour`.
 
 Consulte `README.md` para executar e `docs/VALIDACAO.md` para resultados e reprodução dos testes.
+
+## Atualização do editor
+
+O fluxo de conexão guiada e as correções de auditoria estão descritos em [AUDITORIA-CONEXOES.md](AUDITORIA-CONEXOES.md), que registra os testes atuais sem substituir as evidências históricas desta entrega inicial.

@@ -30,7 +30,7 @@ O servidor de desenvolvimento usa `http://127.0.0.1:3000`. O Playwright inicia u
 - Supabase independente: `fbfdchnttkiovcpwcgfn` (São Paulo).
 - Projeto Vercel: `voee360tour` / `prj_szwTh2gtrJpB6uGEf7yDRQj3bxqD`.
 - Preview de homologação em https://voee360tour.vercel.app/login, com autenticação administrativa própria. Deployments técnicos individuais mantêm proteção Vercel.
-- Código enviado ao repositório privado https://github.com/webluxfloripa-lab/voee360tour. Os 92 arquivos do snapshot local `86eb308` foram conferidos por SHA Git; árvore idêntica `bea6b5360d43fa5db32cbe135014d73edf6c5b20`, importada no commit remoto `affae99a3c57642a745d08802b31a33d484c7990`. A conexão automática deste projeto Vercel ao Git ainda precisa ser concluída em Settings → Git.
+- Código enviado ao repositório privado https://github.com/webluxfloripa-lab/voee360tour. Os 92 arquivos do snapshot local `86eb308` foram conferidos por SHA Git; árvore idêntica `bea6b5360d43fa5db32cbe135014d73edf6c5b20`, importada no commit remoto `affae99a3c57642a745d08802b31a33d484c7990`. O projeto Vercel já está conectado ao repositório; a conexão foi confirmada pela API e por um deployment gerado do GitHub.
 - Nenhum repositório, dado, deployment ou configuração do Seven original foi alterado.
 
 ## Autenticação e primeiro acesso
@@ -85,3 +85,9 @@ Não há dependência operacional do Lovable. Referências antigas aparecem apen
 O deployment desta entrega é para preview/homologação interna. Vercel Hobby restringe uso a projetos pessoais não comerciais. Antes de atender clientes pagantes, confirme um plano Vercel que permita esse uso (ou outro provedor compatível), orçamento e cotas. Nenhum upgrade ou pagamento foi realizado.
 
 Consulte `docs/OPERACAO.md`, `docs/VALIDACAO.md` e `docs/ARQUITETURA.md`.
+
+## Editor guiado de conexões
+
+No panorama, escolha **Adicionar seta**, toque na passagem e selecione o próximo ambiente no painel **Conectar ambiente**. Use **Continuar e posicionar volta**, marque a passagem no panorama de destino, escolha **Concluir conexão** e **Salvar rascunho**. O painel **Conexões entre ambientes** permite retomar voltas pendentes, editar cada direção e testar a navegação sem publicar o tour.
+
+Veja [a auditoria e os limites de homologação](docs/AUDITORIA-CONEXOES.md).

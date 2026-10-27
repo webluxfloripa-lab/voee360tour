@@ -16,6 +16,11 @@ const loadTour = createServerFn({ method: "GET" })
 const Viewer = lazy(() => import("../components/TourViewer"));
 export const Route = createFileRoute("/t/$slug")({
   loader: async ({ params }) => {
+    if (
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(params.slug) ||
+      params.slug.length > 100
+    )
+      throw notFound();
     const tour = await loadTour({ data: { slug: params.slug } });
     if (!tour) throw notFound();
     return tour;

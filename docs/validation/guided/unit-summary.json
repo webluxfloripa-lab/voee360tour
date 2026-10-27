@@ -1,0 +1,8 @@
+{
+  "files": 5,
+  "tests": 24,
+  "passed": 24,
+  "failed": 0,
+  "runner": "vitest",
+  "note": "Unit run completed before branch upload; detailed test definitions are versioned."
+}

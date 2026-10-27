@@ -123,12 +123,14 @@ export default function TourViewer({
         v.on("load", () => {
           if (alive) {
             setLoading(false);
+            setFailed(false);
             if (!playingRef.current) v.stopAutoRotate();
           }
         });
         v.on("scenechange", (id: string) => {
           if (!alive) return;
           setLoading(true);
+          setFailed(false);
           if (!backing.current && currentRef.current)
             history.current.push(currentRef.current);
           backing.current = false;

@@ -64,6 +64,9 @@ beforeEach(() => {
           };
         },
         getConfig: () => config,
+        getPitch: () => 0,
+        getYaw: () => 0,
+        getHfov: () => 105,
         addHotSpot: (h: { id: string }) => {
           if (!state.loaded) throw new Error("not loaded");
           state.added++;

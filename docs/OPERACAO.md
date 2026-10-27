@@ -34,7 +34,7 @@ Os redirecionamentos de Auth ainda precisam ser ajustados no dashboard para o do
 
 ## Pendências externas
 
-- Código enviado e verificado no GitHub privado `webluxfloripa-lab/voee360tour`. Falta conectar o projeto Vercel existente em Settings → Git para deploys automáticos. A API não oferece essa reconexão e o navegador remoto exige login.
+- Código enviado e verificado no GitHub privado `webluxfloripa-lab/voee360tour`. O projeto Vercel existente já foi conectado pela titular e o vínculo foi confirmado pela API; alterações em `main` disparam o fluxo de produção.
 - A titular relatou redefinição de senha e acesso ao aplicativo. Homologar a operação real de tours nessa sessão; o agente não utilizou sua senha nem inspecionou a sessão.
 - Homologação visual física de todas as setas do Seven e comparação com a configuração publicada mais recente, se diferente do snapshot exportado.
 - Escolher plano de hospedagem comercial antes de abrir os tours a clientes pagantes. O domínio `voee360tour.vercel.app` está vinculado ao preview, sem promover tours de clientes para produção comercial.
