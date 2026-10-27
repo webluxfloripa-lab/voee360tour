@@ -41,3 +41,5 @@ jobs:
         run: npm run lint
       - name: Unit tests
         run: npm test
+      - name: Mobile and desktop browser regression
+        run: npm run test:e2e
