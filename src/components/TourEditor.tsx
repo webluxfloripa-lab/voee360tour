@@ -73,6 +73,10 @@ export function TourEditor({ initial }: { initial: State }) {
     [progress, setProgress] = useState(0),
     [tab, setTab] = useState<"arrow" | "scene" | "settings">("arrow"),
     [dialog, setDialog] = useState<"history" | "audit" | "share" | null>(null),
+    [guideFrom, setGuideFrom] = useState(
+      initial.draft.snapshot.firstSceneId || initial.draft.snapshot.scenes[0]?.id || "",
+    ),
+    [guideTo, setGuideTo] = useState(""),
     [viewSnapshot, setViewSnapshot] = useState<Snapshot | null>(null),
     [returnPlan, setReturnPlan] = useState<{
       source: string;
@@ -92,7 +96,9 @@ export function TourEditor({ initial }: { initial: State }) {
   const row = config.scenes.find((s) => s.id === sceneId),
     arrow = row?.links.find((a) => a.id === selected),
     dirty = JSON.stringify(config) !== JSON.stringify(saved),
-    audit = auditTour(config);
+    audit = auditTour(config),
+    guideSourceId =
+      guideFrom || config.firstSceneId || config.scenes[0]?.id || "";
   useEffect(() => {
     let alive = true;
     async function refresh() {
@@ -1365,56 +1371,217 @@ export function TourEditor({ initial }: { initial: State }) {
               <>
                 <div className="audit-stats">
                   <span>{config.scenes.length} ambientes</span>
-                  <span>{audit.arrows} setas</span>
+                  <span>{audit.arrows} {audit.arrows === 1 ? "seta" : "setas"}</span>
                   <span>{audit.reachable} alcançáveis</span>
                 </div>
-                <p className="notice">
-                  A conectividade automática não confirma a direção física.
-                  Confira cada passagem visualmente.
-                </p>
-                {!audit.errors.length && (
+                <div className="audit-explanation" role="status">
+                  <strong>
+                    {audit.errors.length
+                      ? "Trajeto incompleto — não é uma falha nas fotografias."
+                      : "Estrutura conectada. Confira o percurso visualmente."}
+                  </strong>
+                  <p>
+                    {audit.unreachableIds.length
+                      ? `${audit.unreachableIds.length} ambiente(s) ainda não têm um caminho visível a partir do início. Você precisa escolher quais salas se comunicam e marcar as setas nas fotografias.`
+                      : "Os ambientes cadastrados podem ser alcançados pela navegação."}
+                    {" "}A verificação automática não consegue descobrir portas ou corredores apenas pelo nome das imagens.
+                  </p>
+                </div>
+                <section className="audit-guide" aria-label="Assistente de conexão de ambientes">
+                  <h3>Conectar ambientes</h3>
+                  <p>
+                    Escolha a origem e o destino reais. Depois toque na
+                    passagem correspondente no panorama. Nenhuma seta será
+                    criada antes do seu toque.
+                  </p>
+                  <div className="audit-guide-fields">
+                    <label>
+                      Ambiente de origem
+                      <select
+                        value={guideSourceId}
+                        onChange={(e) => {
+                          setGuideFrom(e.target.value);
+                          if (e.target.value === guideTo) setGuideTo("");
+                        }}
+                      >
+                        {config.scenes.map((scene) => (
+                          <option key={scene.id} value={scene.id}>
+                            {scene.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Ambiente de destino
+                      <select
+                        value={guideTo}
+                        onChange={(e) => setGuideTo(e.target.value)}
+                      >
+                        <option value="">Selecione o destino</option>
+                        {config.scenes
+                          .filter((scene) => scene.id !== guideSourceId)
+                          .map((scene) => (
+                            <option key={scene.id} value={scene.id}>
+                              {scene.name}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    className="primary audit-action"
+                    disabled={!guideSourceId || !guideTo || guideSourceId === guideTo}
+                    onClick={() => {
+                      const from = config.scenes.find((scene) => scene.id === guideSourceId);
+                      const to = config.scenes.find((scene) => scene.id === guideTo);
+                      if (!from || !to) return;
+                      setSceneId(from.id);
+                      setSelected("");
+                      setReturnPlan(null);
+                      setDest(to.id);
+                      setTab("arrow");
+                      setMode("place");
+                      setDialog(null);
+                      setStatus(
+                        `Conectando ${from.name} → ${to.name}. Toque na porta ou passagem do panorama para colocar a seta. Depois posicione também o retorno e salve.`,
+                      );
+                      document.querySelector(".editor-panorama-wrap")?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
+                    }}
+                  >
+                    <Plus size={16} />
+                    Posicionar seta no panorama
+                  </button>
+                </section>
+                {audit.missingReturns.length > 0 && (
+                  <section className="audit-pending">
+                    <h3>Setas que precisam de retorno ({audit.missingReturns.length})</h3>
+                    <p>Escolha o ponto físico da volta no ambiente de destino.</p>
+                    {audit.missingReturns.map((link) => {
+                      const from = config.scenes.find((scene) => scene.id === link.sourceId);
+                      const to = config.scenes.find((scene) => scene.id === link.targetId);
+                      const original = from?.links.find((arrow) => arrow.id === link.arrowId);
+                      if (!from || !to || !original) return null;
+                      return (
+                        <div className="audit-pending-row" key={link.arrowId}>
+                          <span>{from.name} → {to.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReturnPlan({
+                                source: from.id,
+                                arrowId: original.id,
+                                pairId: original.pairId || crypto.randomUUID(),
+                              });
+                              setSceneId(to.id);
+                              setSelected("");
+                              setTab("arrow");
+                              setMode("place");
+                              setDialog(null);
+                              setStatus(
+                                `Posicione em ${to.name} a seta de retorno para ${from.name}. Toque na passagem correspondente e depois salve.`,
+                              );
+                              document.querySelector(".editor-panorama-wrap")?.scrollIntoView({
+                                behavior: "smooth",
+                                block: "center",
+                              });
+                            }}
+                          >
+                            Posicionar volta
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </section>
+                )}
+                {audit.unreachableIds.length > 0 && (
+                  <section className="audit-pending">
+                    <h3>Ambientes ainda isolados ({audit.unreachableIds.length})</h3>
+                    <p>
+                      Selecione um ambiente abaixo como destino no assistente,
+                      a partir da sala onde fica a passagem real.
+                    </p>
+                    <div className="audit-room-list">
+                      {audit.unreachableIds.map((id) => {
+                        const scene = config.scenes.find((item) => item.id === id);
+                        if (!scene) return null;
+                        return (
+                          <button
+                            type="button"
+                            key={id}
+                            onClick={() => {
+                              setGuideTo(id);
+                              if (guideSourceId === id) {
+                                setGuideFrom(config.scenes.find((item) => item.id !== id)?.id || "");
+                              }
+                            }}
+                          >
+                            <span>{scene.name}</span>
+                            <span>Selecionar destino</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+                {audit.errors
+                  .filter((error) => !error.includes("inacessível a partir do início"))
+                  .map((error) => (
+                    <p className="audit-issue error" key={error}>
+                      <AlertTriangle size={16} />
+                      {error}
+                    </p>
+                  ))}
+                {audit.warnings
+                  .filter(
+                    (warning) =>
+                      !warning.includes("sem saída visível") &&
+                      !warning.includes("sem retorno visível"),
+                  )
+                  .map((warning) => (
+                    <p className="audit-issue" key={warning}>
+                      <AlertTriangle size={16} />
+                      {warning}
+                    </p>
+                  ))}
+                {!audit.errors.length && !audit.warnings.length && (
                   <p className="success">
                     <CheckCircle2 size={18} />
-                    Estrutura pronta para validação de mídia na publicação.
+                    As conexões passaram na validação lógica.
+                    Revise visualmente a direção das setas antes de publicar.
                   </p>
                 )}
-                {audit.errors.map((e) => (
-                  <p className="audit-issue error" key={e}>
-                    <AlertTriangle size={16} />
-                    {e}
-                  </p>
-                ))}
-                {audit.warnings.map((e) => (
-                  <p className="audit-issue" key={e}>
-                    <AlertTriangle size={16} />
-                    {e}
-                  </p>
-                ))}
-                <h3>Mapa de conexões</h3>
-                <ConnectionGraph
-                  snapshot={config}
-                  onSelect={(id) => {
-                    selectScene(id);
-                    setDialog(null);
-                  }}
-                />
-                <div className="graph-list">
-                  {config.scenes.map((s) => (
-                    <div key={s.id}>
-                      <strong>{s.name}</strong>
-                      <span>→</span>
-                      <p>
-                        {s.links
-                          .map(
-                            (a) =>
-                              config.scenes.find((x) => x.id === a.to)?.name ||
-                              "Destino inválido",
-                          )
-                          .join(" · ") || "Sem conexões"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                <details className="audit-map-details">
+                  <summary>Ver mapa técnico de conexões</summary>
+                  <ConnectionGraph
+                    snapshot={config}
+                    onSelect={(id) => {
+                      selectScene(id);
+                      setDialog(null);
+                    }}
+                  />
+                  <div className="graph-list">
+                    {config.scenes.map((scene) => (
+                      <div key={scene.id}>
+                        <strong>{scene.name}</strong>
+                        <span>→</span>
+                        <p>
+                          {scene.links
+                            .filter((link) => link.visible)
+                            .map(
+                              (link) =>
+                                config.scenes.find((item) => item.id === link.to)?.name ||
+                                "Destino inválido",
+                            )
+                            .join(" · ") || "Sem conexões"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </details>
               </>
             ) : (
               <>
