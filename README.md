@@ -30,12 +30,12 @@ O servidor de desenvolvimento usa `http://127.0.0.1:3000`. O Playwright inicia u
 - Supabase independente: `fbfdchnttkiovcpwcgfn` (São Paulo).
 - Projeto Vercel: `voee360tour` / `prj_szwTh2gtrJpB6uGEf7yDRQj3bxqD`.
 - Preview de homologação em https://voee360tour.vercel.app/login, com autenticação administrativa própria. Deployments técnicos individuais mantêm proteção Vercel.
-- Código Git local versionado. A criação do GitHub privado depende da conclusão do login seguro do provedor; não foi simulada.
+- Código enviado ao repositório privado https://github.com/webluxfloripa-lab/voee360tour. Os 92 arquivos do snapshot local `86eb308` foram conferidos por SHA Git; árvore idêntica `bea6b5360d43fa5db32cbe135014d73edf6c5b20`, importada no commit remoto `affae99a3c57642a745d08802b31a33d484c7990`. A conexão automática deste projeto Vercel ao Git ainda precisa ser concluída em Settings → Git.
 - Nenhum repositório, dado, deployment ou configuração do Seven original foi alterado.
 
 ## Autenticação e primeiro acesso
 
-A única identidade V1 é `wowdanielnadal@gmail.com`, convidada via API administrativa do Supabase. A senha deve ser definida pela própria titular no fluxo de convite. A aplicação não oferece cadastro público.
+A única identidade V1 é `wowdanielnadal@gmail.com`, convidada via API administrativa do Supabase. A titular informou ter redefinido a senha e acessado o aplicativo pelo fluxo seguro. A senha continua sendo definida exclusivamente pela própria titular; essa sessão não foi inspecionada pelo agente. A aplicação não oferece cadastro público.
 
 Se o link do e-mail redirecionar para o endereço padrão do Supabase (`localhost`), abra `/definir-senha` no preview e use **Link do convite**: copie o endereço do botão do e-mail e cole exclusivamente nesse campo da aplicação. O token é validado diretamente pelo Supabase e não deve ser enviado ao chat. Depois, defina uma senha exclusiva com pelo menos 12 caracteres.
 

@@ -12,7 +12,7 @@ Aplicação real, editável e executável, com preview na Vercel e Supabase inde
 - Commit da aplicação implantada: `6e48ab68fd4030f41f3297c130bf87c161c24c07`.
 - SUPER_ADMIN: `wowdanielnadal@gmail.com`. Convite enviado e associação segura confirmada no banco.
 
-A senha deve ser definida pela titular no convite/recuperação do Supabase. A tentativa pelo formulário seguro retornou credenciais inválidas; o login bem-sucedido da titular ainda não foi homologado. A senha informada no chat não consta no código, configuração, histórico Git ou pacote entregue.
+A titular informou ter acessado o aplicativo e redefinido a senha pelo fluxo seguro. O agente não inspecionou essa sessão; os testes de navegador automatizados continuam sendo descritos como testes com fixtures. A senha informada no chat não consta no código, configuração, histórico Git ou pacote entregue.
 
 ## O que está implementado
 
@@ -39,8 +39,8 @@ O preview final respondeu HTTP 200, com cabeçalhos de segurança. A página fin
 
 ## Pendências
 
-1. Concluir ativação/login da titular pelo convite ou recuperação.
-2. Concluir login seguro do GitHub e criar o repositório remoto privado `webluxfloripa-lab/voee360tour`. O Git local completo acompanha a entrega em `voee360tour-history.bundle`; não foi inventada uma URL de repositório remoto.
+1. Homologar com a titular a operação de um tour na sessão real. Ela informou ter acessado o aplicativo e redefinido a senha.
+2. Vincular o projeto Vercel existente ao Git em Settings → Git. Repositório privado já criado e código enviado: https://github.com/webluxfloripa-lab/voee360tour. Os 92 arquivos originais foram verificados por SHA, com árvore idêntica à versão local. A API disponível não reconecta projetos existentes e o navegador remoto exige login. O histórico anterior à importação segue preservado no bundle da entrega inicial.
 3. Ajustar Site URL/Redirect URLs do Auth para o domínio final. Enquanto isso, a página de primeiro acesso valida diretamente o link do convite quando o redirecionamento padrão não funcionar.
 4. Conferir fisicamente as 50 setas e conciliar com eventuais alterações posteriores do Seven original.
 5. Confirmar hospedagem autorizada para uso comercial antes de liberar tours de clientes pagantes. Nenhum pagamento/upgrade foi realizado.

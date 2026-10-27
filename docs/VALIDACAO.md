@@ -18,8 +18,8 @@ Resultados executados de verdade; os testes de interface com fixtures não são 
 | Deployment Vercel                                          | Concluído/testado em preview, HTTP 200 em /login; /t/seven-sports-bar retornou 404 enquanto rascunho, sem vazar os ambientes   |
 | Imagens Seven                                              | Concluído/testado: 44 objetos no Storage próprio, 14.077.933 bytes; tamanho e SHA-256 conferidos; 22 panoramas com aspecto 2:1 |
 | Convite SUPER_ADMIN                                        | Concluído/testado pelo Auth: convite criado para a identidade autorizada e papel super_admin confirmado                        |
-| Login bem-sucedido da titular                              | Pendente: tentativa pelo formulário seguro retornou e-mail/senha inválidos; finalizar pelo convite/recuperação                 |
-| GitHub remoto                                              | Bloqueado por autenticação: login do provedor não concluído; repositório Git local existe e original Seven preservado          |
+| Login bem-sucedido da titular                              | Titular relatou acesso ao aplicativo e redefinição de senha; sessão real não inspecionada pelo agente                 |
+| GitHub remoto                                              | Concluído: repositório privado, commit affae99a, 92 arquivos conferidos por SHA e árvore idêntica à local; Seven preservado          |
 | WhatsApp/OG real e iframe público de cliente               | Implementado, ainda não homologado por compartilhamento real; não há cliente publicado nesta fase                              |
 | Duplicação, backup ZIP e logotipo do cliente               | Implementados; fluxo completo no browser não incluído na suíte desta entrega                                                   |
 | Portal do cliente                                          | Fora do escopo V1, não implementado                                                                                            |
