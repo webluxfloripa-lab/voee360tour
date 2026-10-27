@@ -139,6 +139,12 @@ export function newArrow(to: string, yaw = 0, pitch = -15): Arrow {
 export function auditTour(s: Snapshot) {
   const errors: string[] = [],
     warnings: string[] = [];
+  const missingReturns: Array<{
+    sourceId: string;
+    targetId: string;
+    arrowId: string;
+  }> = [];
+  const withoutExits: string[] = [];
   const ids = new Set(s.scenes.map((s) => s.id));
   if (!s.scenes.length) errors.push("Adicione pelo menos um ambiente.");
   if (!s.firstSceneId || !ids.has(s.firstSceneId))
@@ -146,13 +152,24 @@ export function auditTour(s: Snapshot) {
   for (const scene of s.scenes) {
     if (!scene.panoramaAssetId || !scene.thumbnailAssetId)
       errors.push(`${scene.name}: fotografia ou miniatura ausente.`);
-    if (s.scenes.length > 1 && !scene.links.some((a) => a.visible))
+    if (s.scenes.length > 1 && !scene.links.some((a) => a.visible)) {
       warnings.push(`${scene.name}: sem saída visível.`);
+      withoutExits.push(scene.id);
+    }
     for (const a of scene.links) {
       const dest = s.scenes.find((s) => s.id === a.to);
       if (!dest) errors.push(`${scene.name}: destino inválido.`);
-      else if (!dest.links.some((b) => b.to === scene.id && b.visible))
+      else if (
+        a.visible &&
+        !dest.links.some((b) => b.to === scene.id && b.visible)
+      ) {
         warnings.push(`${scene.name} → ${dest.name}: sem retorno visível.`);
+        missingReturns.push({
+          sourceId: scene.id,
+          targetId: dest.id,
+          arrowId: a.id,
+        });
+      }
       if (scene.links.some((b) => b.id !== a.id && b.to === a.to))
         warnings.push(
           `${scene.name}: conexões repetidas para o mesmo destino.`,
@@ -186,6 +203,11 @@ export function auditTour(s: Snapshot) {
     warnings: [...new Set(warnings)],
     reachable: reachable.size,
     arrows: s.scenes.reduce((n, s) => n + s.links.length, 0),
+    unreachableIds: s.scenes
+      .filter((scene) => !reachable.has(scene.id))
+      .map((scene) => scene.id),
+    withoutExits,
+    missingReturns,
   };
 }
 export function removeScene(s: Snapshot, id: string): Snapshot {
