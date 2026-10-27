@@ -53,10 +53,10 @@ test("admin UI: upload real panoramas, independent return, save publish restore 
       position: { x: box!.width * 0.6, y: box!.height * 0.65 },
     });
   await expect(
-    page.getByRole("button", { name: "Posicionar retorno", exact: true }),
+    page.getByRole("heading", { name: "Conectar ambiente", exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("button", { name: "Posicionar retorno", exact: true })
+    .getByRole("button", { name: "Continuar e posicionar volta", exact: true })
     .click();
   await expect(page.locator(".panorama-loading")).toHaveCount(0, {
     timeout: 30000,
@@ -70,6 +70,15 @@ test("admin UI: upload real panoramas, independent return, save publish restore 
     await canvas.click({
       position: { x: backbox!.width * 0.3, y: backbox!.height * 0.6 },
     });
+  await page
+    .getByRole("button", { name: "Concluir conexão", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Continuar editando este ambiente",
+      exact: true,
+    })
+    .click();
   await expect(page.getByLabel("Rótulo", { exact: true })).toBeVisible();
   await page
     .getByLabel("Rótulo", { exact: true })

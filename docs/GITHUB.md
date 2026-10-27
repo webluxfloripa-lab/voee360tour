@@ -20,6 +20,6 @@ O remoto contém um commit inicial e o snapshot validado, seguido de atualizaç�
 
 O projeto existente `voee360tour` mantém seu preview funcional e suas variáveis configuradas. Nenhum projeto duplicado nem upgrade foi criado.
 
-Falta conectar esse projeto ao repositório em Vercel → voee360tour → Settings → Git → Connect Git Repository. O conector disponível cria novos projetos ligados a Git, mas não reconecta o projeto existente. O navegador remoto chega à tela de login da Vercel.
+A titular conectou o projeto existente ao repositório em Settings → Git. A API confirmou o vínculo com `webluxfloripa-lab/voee360tour`; um preview gerado diretamente do commit `4f612e8` ficou READY e respondeu HTTP 200 no login.
 
-Essa pendência afeta deploys automáticos futuros; não afeta o preview atual. Manter a homologação interna até que a hospedagem permita uso comercial e o tour seja aprovado para publicação.
+A branch de produção configurada é `main`; branches de desenvolvimento recebem previews. Manter a homologação interna até que a hospedagem permita uso comercial e o tour seja aprovado para publicação.

@@ -17,6 +17,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 import { Route as AdminHistoricoRouteImport } from './routes/admin.historico'
 import { Route as EmbedSlugRouteImport } from './routes/embed.$slug'
+import { Route as OgSlugRouteImport } from './routes/og.$slug'
 import { Route as TSlugRouteImport } from './routes/t.$slug'
 import { Route as AdminProjetosIndexRouteImport } from './routes/admin.projetos.index'
 import { Route as AdminProjetosIdEditorRouteImport } from './routes/admin.projetos.$id.editor'
@@ -61,6 +62,11 @@ const EmbedSlugRoute = EmbedSlugRouteImport.update({
   path: '/embed/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OgSlugRoute = OgSlugRouteImport.update({
+  id: '/og/$slug',
+  path: '/og/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TSlugRoute = TSlugRouteImport.update({
   id: '/t/$slug',
   path: '/t/$slug',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/historico': typeof AdminHistoricoRoute
   '/embed/$slug': typeof EmbedSlugRoute
+  '/og/$slug': typeof OgSlugRoute
   '/t/$slug': typeof TSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/projetos/': typeof AdminProjetosIndexRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/historico': typeof AdminHistoricoRoute
   '/embed/$slug': typeof EmbedSlugRoute
+  '/og/$slug': typeof OgSlugRoute
   '/t/$slug': typeof TSlugRoute
   '/admin': typeof AdminIndexRoute
   '/admin/projetos': typeof AdminProjetosIndexRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/historico': typeof AdminHistoricoRoute
   '/embed/$slug': typeof EmbedSlugRoute
+  '/og/$slug': typeof OgSlugRoute
   '/t/$slug': typeof TSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/projetos/': typeof AdminProjetosIndexRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/historico'
     | '/embed/$slug'
+    | '/og/$slug'
     | '/t/$slug'
     | '/admin/'
     | '/admin/projetos/'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/historico'
     | '/embed/$slug'
+    | '/og/$slug'
     | '/t/$slug'
     | '/admin'
     | '/admin/projetos'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/historico'
     | '/embed/$slug'
+    | '/og/$slug'
     | '/t/$slug'
     | '/admin/'
     | '/admin/projetos/'
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   DefinirSenhaRoute: typeof DefinirSenhaRoute
   LoginRoute: typeof LoginRoute
   EmbedSlugRoute: typeof EmbedSlugRoute
+  OgSlugRoute: typeof OgSlugRoute
   TSlugRoute: typeof TSlugRoute
 }
 
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmbedSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/og/$slug': {
+      id: '/og/$slug'
+      path: '/og/$slug'
+      fullPath: '/og/$slug'
+      preLoaderRoute: typeof OgSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/t/$slug': {
       id: '/t/$slug'
       path: '/t/$slug'
@@ -272,6 +292,7 @@ const rootRouteChildren: RootRouteChildren = {
   DefinirSenhaRoute: DefinirSenhaRoute,
   LoginRoute: LoginRoute,
   EmbedSlugRoute: EmbedSlugRoute,
+  OgSlugRoute: OgSlugRoute,
   TSlugRoute: TSlugRoute,
 }
 export const routeTree = rootRouteImport

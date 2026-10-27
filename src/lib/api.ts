@@ -69,11 +69,12 @@ export async function getEditor(projectId: string) {
     fetchAll("media_assets", { key: "project_id", value: projectId }).then(
       (data) => ({ data, error: null }),
     ),
-    supabase
-      .from("tour_versions")
-      .select("*")
-      .eq("project_id", projectId)
-      .order("version_number", { ascending: false }),
+    fetchAll("tour_versions", { key: "project_id", value: projectId }).then(
+      (data) => ({
+        data: data.sort((a, b) => b.version_number - a.version_number),
+        error: null,
+      }),
+    ),
   ]);
   for (const r of [p, d, a, v]) if (r.error) throw r.error;
   const draft = d.data as Draft;
@@ -99,16 +100,19 @@ export async function saveDraft(
 export async function signedAssets(assets: Asset[]) {
   const map: Record<string, string> = {};
   if (!assets.length) return map;
-  const { data, error } = await supabase.storage
-    .from("tour-media")
-    .createSignedUrls(
-      assets.map((a) => a.path),
-      3600,
-    );
-  if (error) throw error;
-  data.forEach((r, i) => {
-    if (r.signedUrl && assets[i]) map[assets[i]!.id] = r.signedUrl;
-  });
+  for (let offset = 0; offset < assets.length; offset += 100) {
+    const batch = assets.slice(offset, offset + 100);
+    const { data, error } = await supabase.storage
+      .from("tour-media")
+      .createSignedUrls(
+        batch.map((a) => a.path),
+        3600,
+      );
+    if (error) throw error;
+    data.forEach((r, i) => {
+      if (r.signedUrl && batch[i]) map[batch[i]!.id] = r.signedUrl;
+    });
+  }
   return map;
 }
 export async function getPublicTour(slug: string) {
@@ -126,13 +130,15 @@ export async function getPublicTour(slug: string) {
       .concat([snapshot.branding.logoAssetId, snapshot.branding.ogAssetId])
       .filter((s): s is string => !!s),
   );
-  const { data: assets, error: err } = await supabase
-    .from("media_assets")
-    .select("*")
-    .eq("project_id", data.project_id)
-    .in("id", [...ids]);
-  if (err) throw err;
-  const urls = await signedAssets(assets as Asset[]);
+  // Anonymous RLS exposes only assets referenced by this publication. Paging
+  // avoids both PostgREST's row cap and a very large `in` URL on larger tours.
+  const assets = await fetchAll("media_assets", {
+    key: "project_id",
+    value: data.project_id,
+  });
+  const urls = await signedAssets(
+    (assets as Asset[]).filter((a) => ids.has(a.id)),
+  );
   return { ...data, snapshot, urls };
 }
 export function downloadJson(value: unknown, filename: string) {

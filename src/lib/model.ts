@@ -146,6 +146,27 @@ export function auditTour(s: Snapshot) {
   }> = [];
   const withoutExits: string[] = [];
   const ids = new Set(s.scenes.map((s) => s.id));
+  const pairs = new Map<string, Array<{ source: string; arrow: Arrow }>>();
+  const complete = new Set<string>();
+  for (const scene of s.scenes)
+    for (const arrow of scene.links) {
+      if (arrow.pairId)
+        pairs.set(arrow.pairId, [
+          ...(pairs.get(arrow.pairId) ?? []),
+          { source: scene.id, arrow },
+        ]);
+    }
+  for (const members of pairs.values()) {
+    if (
+      members.length > 2 ||
+      (members.length === 2 &&
+        (members[0]!.arrow.to !== members[1]!.source ||
+          members[1]!.arrow.to !== members[0]!.source))
+    )
+      errors.push(
+        "Há uma conexão com pareamento inconsistente. Revise a ida e a volta.",
+      );
+  }
   if (!s.scenes.length) errors.push("Adicione pelo menos um ambiente.");
   if (!s.firstSceneId || !ids.has(s.firstSceneId))
     errors.push("Defina o ambiente inicial.");
@@ -158,11 +179,19 @@ export function auditTour(s: Snapshot) {
     }
     for (const a of scene.links) {
       const dest = s.scenes.find((s) => s.id === a.to);
-      if (!dest) errors.push(`${scene.name}: destino inválido.`);
-      else if (
-        a.visible &&
-        !dest.links.some((b) => b.to === scene.id && b.visible)
-      ) {
+      const reverse =
+        dest?.links.filter((b) => b.to === scene.id && b.visible) ?? [];
+      const paired = reverse.find((b) => !!a.pairId && b.pairId === a.pairId);
+      const unpaired = reverse.filter((b) => !b.pairId);
+      const legacy =
+        unpaired.length === 1 &&
+        scene.links.filter((b) => b.to === a.to).length === 1
+          ? unpaired[0]
+          : undefined;
+      const back = paired ?? legacy;
+      if (!dest || dest.id === scene.id)
+        errors.push(`${scene.name}: destino inválido.`);
+      else if (a.visible && !back) {
         warnings.push(`${scene.name} → ${dest.name}: sem retorno visível.`);
         missingReturns.push({
           sourceId: scene.id,
@@ -170,6 +199,7 @@ export function auditTour(s: Snapshot) {
           arrowId: a.id,
         });
       }
+      if (a.visible && back) complete.add([a.id, back.id].sort().join(":"));
       if (scene.links.some((b) => b.id !== a.id && b.to === a.to))
         warnings.push(
           `${scene.name}: conexões repetidas para o mesmo destino.`,
@@ -208,6 +238,14 @@ export function auditTour(s: Snapshot) {
       .map((scene) => scene.id),
     withoutExits,
     missingReturns,
+    completeConnections: complete.size,
+    isolatedIds: s.scenes
+      .filter(
+        (scene) =>
+          !scene.links.length &&
+          !s.scenes.some((other) => other.links.some((a) => a.to === scene.id)),
+      )
+      .map((scene) => scene.id),
   };
 }
 export function removeScene(s: Snapshot, id: string): Snapshot {

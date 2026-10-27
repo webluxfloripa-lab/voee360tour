@@ -61,3 +61,12 @@ test("recovery form never sets a password without a valid invitation", async ({
   ).toBeDisabled();
   await expect(page.getByLabel("Link do convite")).toBeVisible();
 });
+
+test("malformed public tour and iframe links return 404 instead of server errors", async ({
+  page,
+}) => {
+  for (const path of ["/t/Bad_Link", "/embed/Bad_Link", "/og/Bad_Link"]) {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(404);
+  }
+});

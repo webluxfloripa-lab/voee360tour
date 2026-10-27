@@ -16,6 +16,11 @@ const load = createServerFn({ method: "GET" })
 const Viewer = lazy(() => import("../components/TourViewer"));
 export const Route = createFileRoute("/embed/$slug")({
   loader: async ({ params }) => {
+    if (
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(params.slug) ||
+      params.slug.length > 100
+    )
+      throw notFound();
     const t = await load({ data: { slug: params.slug } });
     if (!t) throw notFound();
     return t;

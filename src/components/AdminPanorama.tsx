@@ -178,12 +178,32 @@ export default function AdminPanorama({
       setLoading(false);
       return;
     }
+    // Pannellum can emit a click after dragging on both mouse and touch.
+    // A placement must be a short tap, never the end of a camera gesture.
+    let gesture: { x: number; y: number; moved: boolean } | null = null;
+    function startGesture(e: PointerEvent) {
+      gesture = { x: e.clientX, y: e.clientY, moved: false };
+    }
+    function moveGesture(e: PointerEvent) {
+      if (
+        gesture &&
+        Math.hypot(e.clientX - gesture.x, e.clientY - gesture.y) > 7
+      )
+        gesture.moved = true;
+    }
+    function cancelGesture() {
+      if (gesture) gesture.moved = true;
+    }
+    container?.addEventListener("pointerdown", startGesture, true);
+    container?.addEventListener("pointermove", moveGesture, true);
+    container?.addEventListener("pointercancel", cancelGesture, true);
     function place(e: MouseEvent) {
       const v = viewer.current;
       if (
         props.current.mode !== "place" ||
         !v ||
         !ready.current ||
+        gesture?.moved ||
         (e.target as HTMLElement).closest(".admin-arrow,.pnlm-controls")
       )
         return;
@@ -220,6 +240,7 @@ export default function AdminPanorama({
           if (!alive) return;
           ready.current = true;
           setLoading(false);
+          props.current.onView(v.getPitch(), v.getYaw(), v.getHfov());
           refresh();
         });
         v.on("error", () => {
@@ -252,6 +273,9 @@ export default function AdminPanorama({
       drag.current = null;
       observer?.disconnect();
       container?.removeEventListener("click", place);
+      container?.removeEventListener("pointerdown", startGesture, true);
+      container?.removeEventListener("pointermove", moveGesture, true);
+      container?.removeEventListener("pointercancel", cancelGesture, true);
       try {
         viewer.current?.destroy();
       } catch {

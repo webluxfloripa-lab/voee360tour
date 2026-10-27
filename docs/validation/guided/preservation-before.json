@@ -1,0 +1,33 @@
+{
+  "projects": [
+    {
+      "id": "54e2e841-6e06-5838-982a-a035726c45f5",
+      "slug": "nostro-fumo",
+      "status": "draft",
+      "revision": "56ea2ab8-4ce8-4343-aa26-fdabc1b97287",
+      "draft_hash": "c4f5b06a559930847dd93d180a1f41cb",
+      "arrow_count": 1,
+      "asset_count": 16,
+      "scene_count": 8,
+      "version_count": 0,
+      "versions_hash": null,
+      "published_version_id": null
+    },
+    {
+      "id": "023894c6-611b-58ca-a9ca-80fbd704661f",
+      "slug": "seven-sports-bar",
+      "status": "draft",
+      "revision": "3c74ae76-219c-493b-a171-cc9806ef12a5",
+      "draft_hash": "911d9635566967ba714b0c539c233186",
+      "arrow_count": 50,
+      "asset_count": 44,
+      "scene_count": 22,
+      "version_count": 1,
+      "versions_hash": "f6b9aac2f740155dc15835705506154e",
+      "published_version_id": null
+    }
+  ],
+  "public_tours": 0,
+  "missing_objects": 0,
+  "public_tables_without_rls": 0
+}

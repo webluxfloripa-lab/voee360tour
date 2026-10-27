@@ -38,6 +38,8 @@ export default defineConfig({
         viewport: { width: 360, height: 800 },
         isMobile: true,
         hasTouch: true,
+        userAgent:
+          "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Mobile Safari/537.36",
       },
     },
     { name: "desktop", use: { viewport: { width: 1440, height: 1000 } } },

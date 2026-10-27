@@ -1,3 +1,13 @@
+import { ConnectionPanel } from "./ConnectionPanel";
+import { ConnectionsList } from "./ConnectionsList";
+import {
+  counterpart,
+  confirmDestination,
+  positionReturn,
+  connectionPreview,
+  type ConnectionFlow,
+  type Connection,
+} from "../lib/connections";
 import { useDialogFocus } from "../lib/useDialogFocus";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { ClientOnly, Link } from "@tanstack/react-router";
@@ -74,15 +84,13 @@ export function TourEditor({ initial }: { initial: State }) {
     [tab, setTab] = useState<"arrow" | "scene" | "settings">("arrow"),
     [dialog, setDialog] = useState<"history" | "audit" | "share" | null>(null),
     [guideFrom, setGuideFrom] = useState(
-      initial.draft.snapshot.firstSceneId || initial.draft.snapshot.scenes[0]?.id || "",
+      initial.draft.snapshot.firstSceneId ||
+        initial.draft.snapshot.scenes[0]?.id ||
+        "",
     ),
     [guideTo, setGuideTo] = useState(""),
     [viewSnapshot, setViewSnapshot] = useState<Snapshot | null>(null),
-    [returnPlan, setReturnPlan] = useState<{
-      source: string;
-      arrowId: string;
-      pairId: string;
-    } | null>(null);
+    [flow, setFlow] = useState<ConnectionFlow | null>(null);
   const upload = useRef<HTMLInputElement>(null),
     replace = useRef<HTMLInputElement>(null),
     importFile = useRef<HTMLInputElement>(null),
@@ -139,7 +147,7 @@ export function TourEditor({ initial }: { initial: State }) {
         ...s,
         links: s.links.map((a) =>
           a.id === selected
-            ? { ...a, ...changes }
+            ? { ...a, ...changes, ...(brokenPair ? { pairId: null } : {}) }
             : brokenPair && a.pairId === brokenPair
               ? { ...a, pairId: null }
               : a,
@@ -159,7 +167,7 @@ export function TourEditor({ initial }: { initial: State }) {
     setSceneId(id);
     setSelected("");
     setMode("pan");
-    setReturnPlan(null);
+    setFlow(null);
   }
   async function execute(work: () => Promise<void>) {
     if (busy) return;
@@ -186,62 +194,177 @@ export function TourEditor({ initial }: { initial: State }) {
     setVersions(state.versions);
     return state;
   }
-  function place(pitch: number, yaw: number) {
-    if (returnPlan) {
-      const original = config.scenes
-        .find((s) => s.id === returnPlan.source)
-        ?.links.find((a) => a.id === returnPlan.arrowId);
-      if (!original) return;
-      const existing = row?.links.find(
-        (a) => a.pairId === returnPlan.pairId && a.to === returnPlan.source,
+  function focusPanorama() {
+    requestAnimationFrame(() =>
+      document
+        .querySelector(".editor-panorama-wrap")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    );
+  }
+  function editConnection(id: string, arrowId: string) {
+    selectScene(id);
+    setSelected(arrowId);
+    setTab("arrow");
+    focusPanorama();
+  }
+  function beginReturn(sourceId: string, arrowId: string) {
+    const source = config.scenes.find((s) => s.id === sourceId);
+    const outgoing = source?.links.find((a) => a.id === arrowId);
+    const target = config.scenes.find((s) => s.id === outgoing?.to);
+    if (
+      !outgoing ||
+      !target ||
+      target.id === sourceId ||
+      !target.panoramaAssetId
+    ) {
+      setStatus("Escolha uma conexão válida com fotografia no destino.");
+      return;
+    }
+    setFlow({
+      step: "return",
+      sourceId,
+      targetId: target.id,
+      arrowId,
+      back: counterpart(config, sourceId, arrowId),
+    });
+    setSceneId(target.id);
+    setSelected("");
+    setTab("arrow");
+    setMode("place");
+    setDialog(null);
+    setStatus(
+      `Agora posicione a seta que retorna para ${source!.name}. Arraste para girar; dê um toque curto para posicionar.`,
+    );
+    focusPanorama();
+  }
+  function closeConnection() {
+    setFlow(null);
+    setMode("pan");
+    setStatus(
+      "Exploração ativada. Somente as alterações confirmadas permanecem no rascunho.",
+    );
+  }
+  function chooseDestination(withReturn: boolean) {
+    if (flow?.step !== "destination") return;
+    try {
+      const result = confirmDestination(
+        config,
+        flow.sourceId,
+        flow.targetId,
+        flow.marker,
       );
-      const back = {
-        ...(existing || newArrow(returnPlan.source, yaw, pitch)),
-        yaw,
-        pitch,
-        pairId: returnPlan.pairId,
-      };
-      commit({
-        ...config,
-        scenes: config.scenes.map((s) =>
-          s.id === sceneId
-            ? {
-                ...s,
-                links: existing
-                  ? s.links.map((a) => (a.id === existing.id ? back : a))
-                  : [...s.links, back],
-              }
-            : s.id === returnPlan.source
-              ? {
-                  ...s,
-                  links: s.links.map((a) =>
-                    a.id === returnPlan.arrowId
-                      ? { ...a, pairId: returnPlan.pairId }
-                      : a,
-                  ),
-                }
-              : s,
-        ),
+      if (!result.reused) commit(result.snapshot);
+      setSelected(result.arrow.id);
+      setTab("arrow");
+      if (withReturn) {
+        const back = counterpart(
+          result.snapshot,
+          flow.sourceId,
+          result.arrow.id,
+        );
+        setSceneId(flow.targetId);
+        setSelected("");
+        setFlow({
+          step: "return",
+          sourceId: flow.sourceId,
+          targetId: flow.targetId,
+          arrowId: result.arrow.id,
+          back,
+        });
+        setMode("place");
+        setStatus(
+          `Agora posicione a seta que retorna para ${config.scenes.find((s) => s.id === flow.sourceId)!.name}. A ida está confirmada; a volta ainda está pendente.`,
+        );
+        focusPanorama();
+      } else {
+        setFlow(null);
+        setMode("pan");
+        setStatus(
+          result.reused
+            ? "Conexão existente selecionada, sem duplicação."
+            : "Destino confirmado. Retorno pendente; salve ou posicione a volta.",
+        );
+      }
+    } catch (e) {
+      setStatus(errorText(e));
+    }
+  }
+  function finishConnection() {
+    if (flow?.step !== "review" || !flow.back) return;
+    try {
+      const result = positionReturn(
+        config,
+        flow.sourceId,
+        flow.arrowId,
+        flow.back,
+        flow.back.id,
+      );
+      commit(result.snapshot);
+      setSelected(result.back.id);
+      setMode("pan");
+      setFlow({
+        step: "done",
+        sourceId: flow.sourceId,
+        targetId: flow.targetId,
+        arrowId: flow.arrowId,
+        backId: result.back.id,
       });
-      setSelected(back.id);
-      setReturnPlan(null);
-      setMode("drag");
-      return;
+      setStatus(
+        "Conexão concluída! Ida e volta prontas. Salve o rascunho para preservar as alterações no servidor.",
+      );
+    } catch (e) {
+      setStatus(errorText(e));
     }
-    if (!dest) {
-      setStatus("Escolha o destino antes de tocar no panorama.");
+  }
+  function testConnection(sourceId: string, targetId: string) {
+    setViewSnapshot(connectionPreview(config, sourceId, targetId));
+  }
+  function removeConnection(connection: Connection) {
+    if (
+      !confirm(
+        "Remover esta conexão e sua volta, se houver? As versões anteriores permanecem preservadas.",
+      )
+    )
       return;
-    }
-    const a = newArrow(dest, yaw, pitch);
+    const ids = new Set([connection.arrow.id, connection.back?.id]);
     commit({
       ...config,
-      scenes: config.scenes.map((s) =>
-        s.id === sceneId ? { ...s, links: [...s.links, a] } : s,
-      ),
+      scenes: config.scenes.map((s) => ({
+        ...s,
+        links: s.links.filter((a) => !ids.has(a.id)),
+      })),
     });
-    setSelected(a.id);
-    setMode("drag");
+    setSelected("");
+    setFlow(null);
+    setMode("pan");
+  }
+  function place(pitch: number, yaw: number) {
+    if (!row) return;
+    if (flow?.step === "return" && row.id === flow.targetId) {
+      const back = { ...(flow.back ?? newArrow(flow.sourceId)), pitch, yaw };
+      setFlow({ ...flow, step: "review", back });
+      setSelected(back.id);
+      setMode("pan");
+      setStatus(
+        "Volta posicionada para conferência. Conclua a conexão ou corrija o ponto antes de salvar.",
+      );
+      return;
+    }
+    if (flow && flow.step !== "done") return;
+    setFlow({
+      step: "destination",
+      sourceId: row.id,
+      targetId: dest !== row.id ? dest : "",
+      marker: {
+        ...newArrow(row.id, yaw, pitch),
+        label: "Escolha o próximo ambiente",
+      },
+    });
+    setMode("pan");
     setTab("arrow");
+    setStatus(
+      "Ponto escolhido. Selecione o próximo ambiente no painel Conectar ambiente.",
+    );
   }
   function removeArrow(kind: "one" | "pair" | "return") {
     if (!arrow) return;
@@ -382,7 +505,11 @@ export function TourEditor({ initial }: { initial: State }) {
             title="Desfazer"
             aria-label="Desfazer"
             disabled={!h.canUndo || busy}
-            onClick={h.undo}
+            onClick={() => {
+              setFlow(null);
+              setMode("pan");
+              h.undo();
+            }}
           >
             <Undo2 size={17} />
           </button>
@@ -390,7 +517,11 @@ export function TourEditor({ initial }: { initial: State }) {
             title="Refazer"
             aria-label="Refazer"
             disabled={!h.canRedo || busy}
-            onClick={h.redo}
+            onClick={() => {
+              setFlow(null);
+              setMode("pan");
+              h.redo();
+            }}
           >
             <Redo2 size={17} />
           </button>
@@ -404,7 +535,7 @@ export function TourEditor({ initial }: { initial: State }) {
           </button>
           <button
             aria-label="Salvar"
-            disabled={busy}
+            disabled={busy || (flow !== null && flow.step !== "done")}
             onClick={() =>
               void execute(async () => {
                 await persist();
@@ -418,7 +549,11 @@ export function TourEditor({ initial }: { initial: State }) {
           <button
             aria-label="Publicar"
             className="primary"
-            disabled={busy || project.status === "archived"}
+            disabled={
+              busy ||
+              project.status === "archived" ||
+              (flow !== null && flow.step !== "done")
+            }
             onClick={() => {
               if (audit.errors.length) {
                 setDialog("audit");
@@ -566,10 +701,17 @@ export function TourEditor({ initial }: { initial: State }) {
             ).map((m) => (
               <button
                 key={m.id}
+                disabled={
+                  !!flow &&
+                  (flow.step === "destination" || flow.step === "review") &&
+                  m.id !== "pan"
+                }
                 className={mode === m.id ? "active" : ""}
                 onClick={() => {
                   setMode(m.id);
-                  if (m.id !== "place") setReturnPlan(null);
+                  if (m.id !== "place" && flow?.step === "destination")
+                    setFlow(null);
+                  if (m.id === "place" && flow?.step === "done") setFlow(null);
                 }}
               >
                 <m.icon size={16} />
@@ -595,8 +737,23 @@ export function TourEditor({ initial }: { initial: State }) {
                     scene={row}
                     scenes={config.scenes}
                     image={urls[row.panoramaAssetId || ""]}
-                    arrows={row.links}
-                    selected={selected}
+                    arrows={
+                      flow?.step === "destination" && flow.sourceId === row.id
+                        ? [...row.links, flow.marker]
+                        : flow?.step === "review" &&
+                            flow.back &&
+                            flow.targetId === row.id
+                          ? [
+                              ...row.links.filter(
+                                (a) => a.id !== flow.back!.id,
+                              ),
+                              flow.back,
+                            ]
+                          : row.links
+                    }
+                    selected={
+                      flow?.step === "destination" ? flow.marker.id : selected
+                    }
                     mode={mode}
                     onSelect={(id) => {
                       setSelected(id);
@@ -618,7 +775,12 @@ export function TourEditor({ initial }: { initial: State }) {
                         ),
                       })
                     }
-                    onNavigate={selectScene}
+                    onNavigate={(id) => {
+                      setSceneId(id);
+                      setSelected("");
+                      setFlow(null);
+                      setMode("preview");
+                    }}
                     onView={(pitch, yaw, hfov) => {
                       camera.current = { pitch, yaw, hfov };
                     }}
@@ -641,9 +803,9 @@ export function TourEditor({ initial }: { initial: State }) {
             )}
             {mode === "place" && (
               <div className="placement-tip">
-                {returnPlan
-                  ? "Na cena de destino, toque no ponto físico da volta."
-                  : "Escolha o destino e toque no panorama para inserir a seta."}
+                {flow?.step === "return"
+                  ? "Arraste para girar. Toque na passagem que retorna ao ambiente anterior."
+                  : "Toque na passagem para escolher o próximo ambiente."}
               </div>
             )}
           </div>
@@ -653,465 +815,554 @@ export function TourEditor({ initial }: { initial: State }) {
               Revisão visual das passagens é necessária antes da publicação.
             </small>
           </div>
+          <ConnectionsList
+            snapshot={config}
+            onEdit={editConnection}
+            onReturn={beginReturn}
+            onTest={testConnection}
+            onRemove={removeConnection}
+            onScene={selectScene}
+          />
         </section>
-        <aside className="inspector">
-          <div className="inspector-tabs">
-            {(
-              [
-                { id: "arrow", label: "Setas" },
-                { id: "scene", label: "Ambiente" },
-                { id: "settings", label: "Tour" },
-              ] as const
-            ).map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={tab === t.id ? "active" : ""}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          {tab === "arrow" ? (
-            <div className="inspector-body">
-              <h3>Conecte os espaços.</h3>
-              <p className="muted">Cada seta leva a uma nova perspectiva.</p>
-              <label>
-                Destino da nova seta
-                <select value={dest} onChange={(e) => setDest(e.target.value)}>
-                  <option value="">Selecione um ambiente</option>
-                  {config.scenes
-                    .filter((s) => s.id !== sceneId)
-                    .map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <button
-                className="outline wide"
-                disabled={!row || !dest || !row.panoramaAssetId}
-                onClick={() => {
-                  setReturnPlan(null);
+        <aside className={"inspector" + (flow ? " has-connection" : "")}>
+          {flow ? (
+            <ConnectionPanel
+              flow={flow}
+              snapshot={config}
+              urls={urls}
+              busy={busy}
+              placing={mode === "place"}
+              onTarget={(id) =>
+                flow.step === "destination" &&
+                setFlow({ ...flow, targetId: id })
+              }
+              onConfirm={chooseDestination}
+              onCancel={closeConnection}
+              onPosition={() => {
+                if (flow.step === "review" || flow.step === "return") {
+                  setFlow({ ...flow, step: "return" });
                   setMode("place");
-                }}
-              >
-                <Plus size={16} />
-                Posicionar no panorama
-              </button>
-              {row && (
-                <div className="arrow-list">
-                  {row.links.map((a, i) => (
-                    <button
-                      key={a.id}
-                      className={selected === a.id ? "selected" : ""}
-                      onClick={() => setSelected(a.id)}
-                    >
-                      <span>↗ {i + 1}</span>
-                      <strong>
-                        {a.label ||
-                          config.scenes.find((s) => s.id === a.to)?.name}
-                      </strong>
-                      <small>
-                        {a.visible ? "Visível" : "Oculta"}
-                        {a.pairId ? " · Ida/volta" : ""}
-                      </small>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {arrow ? (
-                <>
-                  <div className="inspector-divider" />
-                  <h4>Propriedades da seta</h4>
+                  focusPanorama();
+                }
+              }}
+              onFinish={finishConnection}
+              onContinue={(connect) => {
+                setFlow(null);
+                setMode(connect ? "place" : "pan");
+                focusPanorama();
+              }}
+              onPrevious={() => selectScene(flow.sourceId)}
+              onSave={() =>
+                void execute(async () => {
+                  await persist();
+                  setStatus(
+                    "Rascunho salvo no servidor. Ida e volta preservadas.",
+                  );
+                  setFlow(null);
+                })
+              }
+              onTest={() => testConnection(flow.sourceId, flow.targetId)}
+            />
+          ) : (
+            <>
+              <div className="inspector-tabs">
+                {(
+                  [
+                    { id: "arrow", label: "Setas" },
+                    { id: "scene", label: "Ambiente" },
+                    { id: "settings", label: "Tour" },
+                  ] as const
+                ).map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    className={tab === t.id ? "active" : ""}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              {tab === "arrow" ? (
+                <div className="inspector-body">
+                  <h3>Conecte os espaços.</h3>
+                  <p className="muted">
+                    Cada seta leva a uma nova perspectiva.
+                  </p>
                   <label>
-                    Destino
+                    Destino da nova seta
                     <select
-                      value={arrow.to}
-                      onChange={(e) =>
-                        changeArrow({ to: e.target.value, pairId: null })
-                      }
+                      value={dest}
+                      onChange={(e) => setDest(e.target.value)}
                     >
-                      {config.scenes.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
+                      <option value="">Selecione um ambiente</option>
+                      {config.scenes
+                        .filter((s) => s.id !== sceneId)
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
                     </select>
                   </label>
-                  <label>
-                    Rótulo
-                    <input
-                      maxLength={100}
-                      value={arrow.label}
-                      onChange={(e) => changeArrow({ label: e.target.value })}
-                      placeholder="Ir para…"
-                    />
-                  </label>
-                  {(
-                    [
-                      {
-                        key: "yaw",
-                        label: "Posição horizontal",
-                        min: -180,
-                        max: 180,
-                        step: 0.1,
-                      },
-                      {
-                        key: "pitch",
-                        label: "Posição vertical",
-                        min: -62,
-                        max: 80,
-                        step: 0.1,
-                      },
-                      {
-                        key: "rotation",
-                        label: "Direção da seta",
-                        min: -180,
-                        max: 180,
-                        step: 1,
-                      },
-                      {
-                        key: "size",
-                        label: "Tamanho",
-                        min: 24,
-                        max: 120,
-                        step: 1,
-                      },
-                      {
-                        key: "opacity",
-                        label: "Opacidade",
-                        min: 0.1,
-                        max: 1,
-                        step: 0.05,
-                      },
-                    ] as const
-                  ).map((f) => (
-                    <label key={f.key} className="range-label">
-                      <span>
-                        {f.label}
+                  <button
+                    className="outline wide"
+                    disabled={!row || !row.panoramaAssetId}
+                    onClick={() => {
+                      setFlow(null);
+                      setMode("place");
+                    }}
+                  >
+                    <Plus size={16} />
+                    Posicionar no panorama
+                  </button>
+                  {row && (
+                    <div className="arrow-list">
+                      {row.links.map((a, i) => (
+                        <button
+                          key={a.id}
+                          className={selected === a.id ? "selected" : ""}
+                          onClick={() => setSelected(a.id)}
+                        >
+                          <span>↗ {i + 1}</span>
+                          <strong>
+                            {a.label ||
+                              config.scenes.find((s) => s.id === a.to)?.name}
+                          </strong>
+                          <small>
+                            {a.visible ? "Visível" : "Oculta"}
+                            {counterpart(config, sceneId, a.id)
+                              ? " · Ida e volta"
+                              : " · Retorno pendente"}
+                          </small>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {arrow ? (
+                    <>
+                      <div className="inspector-divider" />
+                      <h4>Propriedades da seta</h4>
+                      <label>
+                        Destino
+                        <select
+                          value={arrow.to}
+                          onChange={(e) =>
+                            changeArrow({ to: e.target.value, pairId: null })
+                          }
+                        >
+                          {config.scenes
+                            .filter(
+                              (s) => s.id !== sceneId || s.id === arrow.to,
+                            )
+                            .map((s) => (
+                              <option
+                                key={s.id}
+                                value={s.id}
+                                disabled={s.id === sceneId}
+                              >
+                                {s.name}
+                                {s.id === sceneId
+                                  ? " (escolha outro ambiente)"
+                                  : ""}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+                      <label>
+                        Rótulo
                         <input
-                          aria-label={f.label + " valor"}
-                          type="number"
-                          min={f.min}
-                          max={f.max}
-                          step={f.step}
-                          value={arrow[f.key]}
-                          onChange={(e) => {
-                            const n = e.target.valueAsNumber;
-                            if (Number.isFinite(n))
-                              changeArrow({
-                                [f.key]: Math.max(f.min, Math.min(f.max, n)),
-                              });
-                          }}
+                          maxLength={100}
+                          value={arrow.label}
+                          onChange={(e) =>
+                            changeArrow({ label: e.target.value })
+                          }
+                          placeholder="Ir para…"
                         />
-                      </span>
-                      <input
-                        aria-label={f.label}
-                        type="range"
-                        min={f.min}
-                        max={f.max}
-                        step={f.step}
-                        value={arrow[f.key]}
-                        onChange={(e) =>
-                          changeArrow({ [f.key]: Number(e.target.value) })
-                        }
-                      />
-                    </label>
-                  ))}
-                  <div className="two-fields">
-                    <label>
-                      Estilo
-                      <select
-                        value={arrow.style}
-                        onChange={(e) =>
-                          changeArrow({
-                            style: e.target.value as Arrow["style"],
-                          })
+                      </label>
+                      {(
+                        [
+                          {
+                            key: "yaw",
+                            label: "Posição horizontal",
+                            min: -180,
+                            max: 180,
+                            step: 0.1,
+                          },
+                          {
+                            key: "pitch",
+                            label: "Posição vertical",
+                            min: -62,
+                            max: 80,
+                            step: 0.1,
+                          },
+                          {
+                            key: "rotation",
+                            label: "Direção da seta",
+                            min: -180,
+                            max: 180,
+                            step: 1,
+                          },
+                          {
+                            key: "size",
+                            label: "Tamanho",
+                            min: 24,
+                            max: 120,
+                            step: 1,
+                          },
+                          {
+                            key: "opacity",
+                            label: "Opacidade",
+                            min: 0.1,
+                            max: 1,
+                            step: 0.05,
+                          },
+                        ] as const
+                      ).map((f) => (
+                        <label key={f.key} className="range-label">
+                          <span>
+                            {f.label}
+                            <input
+                              aria-label={f.label + " valor"}
+                              type="number"
+                              min={f.min}
+                              max={f.max}
+                              step={f.step}
+                              value={arrow[f.key]}
+                              onChange={(e) => {
+                                const n = e.target.valueAsNumber;
+                                if (Number.isFinite(n))
+                                  changeArrow({
+                                    [f.key]: Math.max(
+                                      f.min,
+                                      Math.min(f.max, n),
+                                    ),
+                                  });
+                              }}
+                            />
+                          </span>
+                          <input
+                            aria-label={f.label}
+                            type="range"
+                            min={f.min}
+                            max={f.max}
+                            step={f.step}
+                            value={arrow[f.key]}
+                            onChange={(e) =>
+                              changeArrow({ [f.key]: Number(e.target.value) })
+                            }
+                          />
+                        </label>
+                      ))}
+                      <div className="two-fields">
+                        <label>
+                          Estilo
+                          <select
+                            value={arrow.style}
+                            onChange={(e) =>
+                              changeArrow({
+                                style: e.target.value as Arrow["style"],
+                              })
+                            }
+                          >
+                            <option value="circle">Círculo</option>
+                            <option value="plain">Livre</option>
+                          </select>
+                        </label>
+                        <label>
+                          Ícone
+                          <select
+                            value={arrow.icon}
+                            onChange={(e) =>
+                              changeArrow({
+                                icon: e.target.value as Arrow["icon"],
+                              })
+                            }
+                          >
+                            <option value="arrow">Seta</option>
+                            <option value="chevron">Chevron</option>
+                          </select>
+                        </label>
+                      </div>
+                      <label>
+                        Cor
+                        <input
+                          type="color"
+                          value={arrow.color}
+                          onChange={(e) =>
+                            changeArrow({
+                              color: e.target.value,
+                              tone: "primary",
+                            })
+                          }
+                        />
+                      </label>
+                      <label className="checkbox">
+                        <input
+                          type="checkbox"
+                          checked={arrow.visible}
+                          onChange={(e) =>
+                            changeArrow({ visible: e.target.checked })
+                          }
+                        />
+                        Visível para o visitante
+                      </label>
+                      {counterpart(config, sceneId, arrow.id) && (
+                        <button
+                          className="outline wide"
+                          onClick={() =>
+                            editConnection(
+                              arrow.to,
+                              counterpart(config, sceneId, arrow.id)!.id,
+                            )
+                          }
+                        >
+                          Abrir seta correspondente
+                        </button>
+                      )}
+                      <button
+                        className="outline wide"
+                        onClick={() => beginReturn(sceneId, arrow.id)}
+                      >
+                        <ArrowLeftRight size={16} />
+                        Posicionar retorno
+                      </button>
+                      <div className="danger-actions">
+                        <button onClick={() => removeArrow("one")}>
+                          <Trash2 size={14} />
+                          Excluir ida
+                        </button>
+                        <button onClick={() => removeArrow("return")}>
+                          Excluir volta
+                        </button>
+                        <button onClick={() => removeArrow("pair")}>
+                          Excluir par
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="inspector-empty">
+                      <MousePointer2 size={22} />
+                      <p>Selecione uma seta para ajustar suas propriedades.</p>
+                    </div>
+                  )}
+                </div>
+              ) : tab === "scene" ? (
+                <div className="inspector-body">
+                  {row ? (
+                    <>
+                      <h3>Seu ambiente.</h3>
+                      <label>
+                        Nome
+                        <input
+                          value={row.name}
+                          maxLength={120}
+                          onChange={(e) =>
+                            changeScene({ name: e.target.value })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Grupo
+                        <input
+                          value={row.group}
+                          maxLength={100}
+                          onChange={(e) =>
+                            changeScene({ group: e.target.value })
+                          }
+                          placeholder="Ex.: Térreo"
+                        />
+                      </label>
+                      <button
+                        className="outline wide"
+                        onClick={() => replace.current?.click()}
+                      >
+                        <ImagePlus size={16} />
+                        Trocar fotografia
+                      </button>
+                      <button
+                        className="outline wide"
+                        onClick={() =>
+                          commit({ ...config, firstSceneId: row.id })
                         }
                       >
-                        <option value="circle">Círculo</option>
-                        <option value="plain">Livre</option>
-                      </select>
-                    </label>
-                    <label>
-                      Ícone
-                      <select
-                        value={arrow.icon}
-                        onChange={(e) =>
-                          changeArrow({ icon: e.target.value as Arrow["icon"] })
-                        }
+                        <Star size={16} />
+                        {config.firstSceneId === row.id
+                          ? "Ambiente inicial"
+                          : "Definir como início"}
+                      </button>
+                      <button
+                        className="outline wide"
+                        onClick={() => changeScene(camera.current)}
                       >
-                        <option value="arrow">Seta</option>
-                        <option value="chevron">Chevron</option>
-                      </select>
-                    </label>
-                  </div>
+                        <Settings2 size={16} />
+                        Usar enquadramento atual
+                      </button>
+                      <p className="muted">
+                        Posição inicial: {row.yaw.toFixed(1)}° /{" "}
+                        {row.pitch.toFixed(1)}° · Campo {row.hfov.toFixed(0)}°
+                      </p>
+                      <button
+                        className="danger wide"
+                        onClick={() => {
+                          const incoming = config.scenes.reduce(
+                            (n, s) =>
+                              n + s.links.filter((a) => a.to === row.id).length,
+                            0,
+                          );
+                          if (
+                            confirm(
+                              `Excluir “${row.name}”? Serão removidas ${row.links.length} setas de saída e ${incoming} de entrada. Versões antigas e suas fotografias serão preservadas.`,
+                            )
+                          ) {
+                            const next = removeScene(config, row.id);
+                            commit(next);
+                            setSceneId(next.scenes[0]?.id || "");
+                            setSelected("");
+                          }
+                        }}
+                      >
+                        <Trash2 size={16} />
+                        Excluir ambiente
+                      </button>
+                    </>
+                  ) : (
+                    <p>Selecione um ambiente.</p>
+                  )}
+                </div>
+              ) : (
+                <div className="inspector-body">
+                  <h3>A identidade do tour.</h3>
                   <label>
-                    Cor
+                    Título
                     <input
-                      type="color"
-                      value={arrow.color}
+                      value={config.title}
+                      maxLength={160}
                       onChange={(e) =>
-                        changeArrow({ color: e.target.value, tone: "primary" })
+                        commit({ ...config, title: e.target.value })
                       }
                     />
                   </label>
+                  <label>
+                    Descrição
+                    <textarea
+                      value={config.description}
+                      maxLength={1000}
+                      onChange={(e) =>
+                        commit({ ...config, description: e.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Cor principal
+                    <input
+                      type="color"
+                      value={config.branding.accent}
+                      onChange={(e) =>
+                        commit({
+                          ...config,
+                          branding: {
+                            ...config.branding,
+                            accent: e.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                  <div className="branding-previews">
+                    {config.branding.logoAssetId &&
+                      urls[config.branding.logoAssetId] && (
+                        <img
+                          alt="Logo do cliente"
+                          src={urls[config.branding.logoAssetId]}
+                        />
+                      )}
+                    {config.branding.ogAssetId &&
+                      urls[config.branding.ogAssetId] && (
+                        <img
+                          alt="Prévia de compartilhamento"
+                          src={urls[config.branding.ogAssetId]}
+                        />
+                      )}
+                  </div>
+                  <button
+                    className="outline wide"
+                    onClick={() => {
+                      brandKind.current = "logo";
+                      brandFile.current?.click();
+                    }}
+                  >
+                    Enviar logo do cliente
+                  </button>
+                  <button
+                    className="outline wide"
+                    onClick={() => {
+                      brandKind.current = "social";
+                      brandFile.current?.click();
+                    }}
+                  >
+                    Imagem de prévia WhatsApp
+                  </button>
                   <label className="checkbox">
                     <input
                       type="checkbox"
-                      checked={arrow.visible}
+                      checked={config.settings.autoRotate}
                       onChange={(e) =>
-                        changeArrow({ visible: e.target.checked })
+                        commit({
+                          ...config,
+                          settings: {
+                            ...config.settings,
+                            autoRotate: e.target.checked,
+                          },
+                        })
                       }
                     />
-                    Visível para o visitante
+                    Giro automático opcional
                   </label>
-                  <button
-                    className="outline wide"
-                    onClick={() => {
-                      const pairId = arrow.pairId || crypto.randomUUID();
-                      setReturnPlan({
-                        source: sceneId,
-                        arrowId: arrow.id,
-                        pairId,
-                      });
-                      setSceneId(arrow.to);
-                      setSelected("");
-                      setMode("place");
-                      setStatus(
-                        "Escolha um ponto independente para o retorno no ambiente de destino.",
-                      );
-                    }}
-                  >
-                    <ArrowLeftRight size={16} />
-                    Posicionar retorno
-                  </button>
-                  <div className="danger-actions">
-                    <button onClick={() => removeArrow("one")}>
-                      <Trash2 size={14} />
-                      Excluir ida
-                    </button>
-                    <button onClick={() => removeArrow("return")}>
-                      Excluir volta
-                    </button>
-                    <button onClick={() => removeArrow("pair")}>
-                      Excluir par
-                    </button>
+                  <div className="two-fields">
+                    <label>
+                      Zoom mínimo
+                      <input
+                        type="number"
+                        min={30}
+                        max={100}
+                        value={config.settings.minHfov}
+                        onChange={(e) =>
+                          commit({
+                            ...config,
+                            settings: {
+                              ...config.settings,
+                              minHfov: Number(e.target.value),
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Zoom máximo
+                      <input
+                        type="number"
+                        min={90}
+                        max={140}
+                        value={config.settings.maxHfov}
+                        onChange={(e) =>
+                          commit({
+                            ...config,
+                            settings: {
+                              ...config.settings,
+                              maxHfov: Number(e.target.value),
+                            },
+                          })
+                        }
+                      />
+                    </label>
                   </div>
-                </>
-              ) : (
-                <div className="inspector-empty">
-                  <MousePointer2 size={22} />
-                  <p>Selecione uma seta para ajustar suas propriedades.</p>
+                  <p className="muted">
+                    A redução de movimento do dispositivo é respeitada. Dados e
+                    marca permanecem exclusivos deste projeto.
+                  </p>
                 </div>
               )}
-            </div>
-          ) : tab === "scene" ? (
-            <div className="inspector-body">
-              {row ? (
-                <>
-                  <h3>Seu ambiente.</h3>
-                  <label>
-                    Nome
-                    <input
-                      value={row.name}
-                      maxLength={120}
-                      onChange={(e) => changeScene({ name: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    Grupo
-                    <input
-                      value={row.group}
-                      maxLength={100}
-                      onChange={(e) => changeScene({ group: e.target.value })}
-                      placeholder="Ex.: Térreo"
-                    />
-                  </label>
-                  <button
-                    className="outline wide"
-                    onClick={() => replace.current?.click()}
-                  >
-                    <ImagePlus size={16} />
-                    Trocar fotografia
-                  </button>
-                  <button
-                    className="outline wide"
-                    onClick={() => commit({ ...config, firstSceneId: row.id })}
-                  >
-                    <Star size={16} />
-                    {config.firstSceneId === row.id
-                      ? "Ambiente inicial"
-                      : "Definir como início"}
-                  </button>
-                  <button
-                    className="outline wide"
-                    onClick={() => changeScene(camera.current)}
-                  >
-                    <Settings2 size={16} />
-                    Usar enquadramento atual
-                  </button>
-                  <p className="muted">
-                    Posição inicial: {row.yaw.toFixed(1)}° /{" "}
-                    {row.pitch.toFixed(1)}° · Campo {row.hfov.toFixed(0)}°
-                  </p>
-                  <button
-                    className="danger wide"
-                    onClick={() => {
-                      const incoming = config.scenes.reduce(
-                        (n, s) =>
-                          n + s.links.filter((a) => a.to === row.id).length,
-                        0,
-                      );
-                      if (
-                        confirm(
-                          `Excluir “${row.name}”? Serão removidas ${row.links.length} setas de saída e ${incoming} de entrada. Versões antigas e suas fotografias serão preservadas.`,
-                        )
-                      ) {
-                        const next = removeScene(config, row.id);
-                        commit(next);
-                        setSceneId(next.scenes[0]?.id || "");
-                        setSelected("");
-                      }
-                    }}
-                  >
-                    <Trash2 size={16} />
-                    Excluir ambiente
-                  </button>
-                </>
-              ) : (
-                <p>Selecione um ambiente.</p>
-              )}
-            </div>
-          ) : (
-            <div className="inspector-body">
-              <h3>A identidade do tour.</h3>
-              <label>
-                Título
-                <input
-                  value={config.title}
-                  maxLength={160}
-                  onChange={(e) => commit({ ...config, title: e.target.value })}
-                />
-              </label>
-              <label>
-                Descrição
-                <textarea
-                  value={config.description}
-                  maxLength={1000}
-                  onChange={(e) =>
-                    commit({ ...config, description: e.target.value })
-                  }
-                />
-              </label>
-              <label>
-                Cor principal
-                <input
-                  type="color"
-                  value={config.branding.accent}
-                  onChange={(e) =>
-                    commit({
-                      ...config,
-                      branding: { ...config.branding, accent: e.target.value },
-                    })
-                  }
-                />
-              </label>
-              <div className="branding-previews">
-                {config.branding.logoAssetId &&
-                  urls[config.branding.logoAssetId] && (
-                    <img
-                      alt="Logo do cliente"
-                      src={urls[config.branding.logoAssetId]}
-                    />
-                  )}
-                {config.branding.ogAssetId &&
-                  urls[config.branding.ogAssetId] && (
-                    <img
-                      alt="Prévia de compartilhamento"
-                      src={urls[config.branding.ogAssetId]}
-                    />
-                  )}
-              </div>
-              <button
-                className="outline wide"
-                onClick={() => {
-                  brandKind.current = "logo";
-                  brandFile.current?.click();
-                }}
-              >
-                Enviar logo do cliente
-              </button>
-              <button
-                className="outline wide"
-                onClick={() => {
-                  brandKind.current = "social";
-                  brandFile.current?.click();
-                }}
-              >
-                Imagem de prévia WhatsApp
-              </button>
-              <label className="checkbox">
-                <input
-                  type="checkbox"
-                  checked={config.settings.autoRotate}
-                  onChange={(e) =>
-                    commit({
-                      ...config,
-                      settings: {
-                        ...config.settings,
-                        autoRotate: e.target.checked,
-                      },
-                    })
-                  }
-                />
-                Giro automático opcional
-              </label>
-              <div className="two-fields">
-                <label>
-                  Zoom mínimo
-                  <input
-                    type="number"
-                    min={30}
-                    max={100}
-                    value={config.settings.minHfov}
-                    onChange={(e) =>
-                      commit({
-                        ...config,
-                        settings: {
-                          ...config.settings,
-                          minHfov: Number(e.target.value),
-                        },
-                      })
-                    }
-                  />
-                </label>
-                <label>
-                  Zoom máximo
-                  <input
-                    type="number"
-                    min={90}
-                    max={140}
-                    value={config.settings.maxHfov}
-                    onChange={(e) =>
-                      commit({
-                        ...config,
-                        settings: {
-                          ...config.settings,
-                          maxHfov: Number(e.target.value),
-                        },
-                      })
-                    }
-                  />
-                </label>
-              </div>
-              <p className="muted">
-                A redução de movimento do dispositivo é respeitada. Dados e
-                marca permanecem exclusivos deste projeto.
-              </p>
-            </div>
+            </>
           )}
         </aside>
       </div>
@@ -1340,6 +1591,8 @@ export function TourEditor({ initial }: { initial: State }) {
                                   });
                                   const state = await reload();
                                   h.reset(state.draft.snapshot);
+                                  setFlow(null);
+                                  setMode("pan");
                                   setSaved(state.draft.snapshot);
                                   setRevision(state.draft.revision);
                                   setSceneId(
@@ -1371,7 +1624,9 @@ export function TourEditor({ initial }: { initial: State }) {
               <>
                 <div className="audit-stats">
                   <span>{config.scenes.length} ambientes</span>
-                  <span>{audit.arrows} {audit.arrows === 1 ? "seta" : "setas"}</span>
+                  <span>
+                    {audit.arrows} {audit.arrows === 1 ? "seta" : "setas"}
+                  </span>
                   <span>{audit.reachable} alcançáveis</span>
                 </div>
                 <div className="audit-explanation" role="status">
@@ -1383,16 +1638,25 @@ export function TourEditor({ initial }: { initial: State }) {
                   <p>
                     {audit.unreachableIds.length
                       ? `${audit.unreachableIds.length} ambiente(s) ainda não têm um caminho visível a partir do início. Você precisa escolher quais salas se comunicam e marcar as setas nas fotografias.`
-                      : "Os ambientes cadastrados podem ser alcançados pela navegação."}
-                    {" "}A verificação automática não consegue descobrir portas ou corredores apenas pelo nome das imagens.
+                      : "Os ambientes cadastrados podem ser alcançados pela navegação."}{" "}
+                    A verificação automática não consegue descobrir portas ou
+                    corredores apenas pelo nome das imagens.
                   </p>
                 </div>
-                <section className="audit-guide" aria-label="Assistente de conexão de ambientes">
+                <p className="audit-connection-counts">
+                  {audit.completeConnections} conexão(ões) de ida e volta ·{" "}
+                  {audit.missingReturns.length} retorno(s) pendente(s) ·{" "}
+                  {audit.isolatedIds.length} ambiente(s) sem conexões.
+                </p>
+                <section
+                  className="audit-guide"
+                  aria-label="Assistente de conexão de ambientes"
+                >
                   <h3>Conectar ambientes</h3>
                   <p>
-                    Escolha a origem e o destino reais. Depois toque na
-                    passagem correspondente no panorama. Nenhuma seta será
-                    criada antes do seu toque.
+                    Escolha a origem e o destino reais. Depois toque na passagem
+                    correspondente no panorama. Nenhuma seta será criada antes
+                    do seu toque.
                   </p>
                   <div className="audit-guide-fields">
                     <label>
@@ -1431,14 +1695,20 @@ export function TourEditor({ initial }: { initial: State }) {
                   <button
                     type="button"
                     className="primary audit-action"
-                    disabled={!guideSourceId || !guideTo || guideSourceId === guideTo}
+                    disabled={
+                      !guideSourceId || !guideTo || guideSourceId === guideTo
+                    }
                     onClick={() => {
-                      const from = config.scenes.find((scene) => scene.id === guideSourceId);
-                      const to = config.scenes.find((scene) => scene.id === guideTo);
+                      const from = config.scenes.find(
+                        (scene) => scene.id === guideSourceId,
+                      );
+                      const to = config.scenes.find(
+                        (scene) => scene.id === guideTo,
+                      );
                       if (!from || !to) return;
                       setSceneId(from.id);
                       setSelected("");
-                      setReturnPlan(null);
+                      setFlow(null);
                       setDest(to.id);
                       setTab("arrow");
                       setMode("place");
@@ -1446,10 +1716,12 @@ export function TourEditor({ initial }: { initial: State }) {
                       setStatus(
                         `Conectando ${from.name} → ${to.name}. Toque na porta ou passagem do panorama para colocar a seta. Depois posicione também o retorno e salve.`,
                       );
-                      document.querySelector(".editor-panorama-wrap")?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
+                      document
+                        .querySelector(".editor-panorama-wrap")
+                        ?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
                     }}
                   >
                     <Plus size={16} />
@@ -1458,37 +1730,32 @@ export function TourEditor({ initial }: { initial: State }) {
                 </section>
                 {audit.missingReturns.length > 0 && (
                   <section className="audit-pending">
-                    <h3>Setas que precisam de retorno ({audit.missingReturns.length})</h3>
-                    <p>Escolha o ponto físico da volta no ambiente de destino.</p>
+                    <h3>
+                      Setas que precisam de retorno (
+                      {audit.missingReturns.length})
+                    </h3>
+                    <p>
+                      Escolha o ponto físico da volta no ambiente de destino.
+                    </p>
                     {audit.missingReturns.map((link) => {
-                      const from = config.scenes.find((scene) => scene.id === link.sourceId);
-                      const to = config.scenes.find((scene) => scene.id === link.targetId);
-                      const original = from?.links.find((arrow) => arrow.id === link.arrowId);
+                      const from = config.scenes.find(
+                        (scene) => scene.id === link.sourceId,
+                      );
+                      const to = config.scenes.find(
+                        (scene) => scene.id === link.targetId,
+                      );
+                      const original = from?.links.find(
+                        (arrow) => arrow.id === link.arrowId,
+                      );
                       if (!from || !to || !original) return null;
                       return (
                         <div className="audit-pending-row" key={link.arrowId}>
-                          <span>{from.name} → {to.name}</span>
+                          <span>
+                            {from.name} → {to.name}
+                          </span>
                           <button
                             type="button"
-                            onClick={() => {
-                              setReturnPlan({
-                                source: from.id,
-                                arrowId: original.id,
-                                pairId: original.pairId || crypto.randomUUID(),
-                              });
-                              setSceneId(to.id);
-                              setSelected("");
-                              setTab("arrow");
-                              setMode("place");
-                              setDialog(null);
-                              setStatus(
-                                `Posicione em ${to.name} a seta de retorno para ${from.name}. Toque na passagem correspondente e depois salve.`,
-                              );
-                              document.querySelector(".editor-panorama-wrap")?.scrollIntoView({
-                                behavior: "smooth",
-                                block: "center",
-                              });
-                            }}
+                            onClick={() => beginReturn(from.id, original.id)}
                           >
                             Posicionar volta
                           </button>
@@ -1499,14 +1766,18 @@ export function TourEditor({ initial }: { initial: State }) {
                 )}
                 {audit.unreachableIds.length > 0 && (
                   <section className="audit-pending">
-                    <h3>Ambientes ainda isolados ({audit.unreachableIds.length})</h3>
+                    <h3>
+                      Ambientes ainda isolados ({audit.unreachableIds.length})
+                    </h3>
                     <p>
-                      Selecione um ambiente abaixo como destino no assistente,
-                      a partir da sala onde fica a passagem real.
+                      Selecione um ambiente abaixo como destino no assistente, a
+                      partir da sala onde fica a passagem real.
                     </p>
                     <div className="audit-room-list">
                       {audit.unreachableIds.map((id) => {
-                        const scene = config.scenes.find((item) => item.id === id);
+                        const scene = config.scenes.find(
+                          (item) => item.id === id,
+                        );
                         if (!scene) return null;
                         return (
                           <button
@@ -1515,7 +1786,10 @@ export function TourEditor({ initial }: { initial: State }) {
                             onClick={() => {
                               setGuideTo(id);
                               if (guideSourceId === id) {
-                                setGuideFrom(config.scenes.find((item) => item.id !== id)?.id || "");
+                                setGuideFrom(
+                                  config.scenes.find((item) => item.id !== id)
+                                    ?.id || "",
+                                );
                               }
                             }}
                           >
@@ -1528,7 +1802,10 @@ export function TourEditor({ initial }: { initial: State }) {
                   </section>
                 )}
                 {audit.errors
-                  .filter((error) => !error.includes("inacessível a partir do início"))
+                  .filter(
+                    (error) =>
+                      !error.includes("inacessível a partir do início"),
+                  )
                   .map((error) => (
                     <p className="audit-issue error" key={error}>
                       <AlertTriangle size={16} />
@@ -1550,8 +1827,8 @@ export function TourEditor({ initial }: { initial: State }) {
                 {!audit.errors.length && !audit.warnings.length && (
                   <p className="success">
                     <CheckCircle2 size={18} />
-                    As conexões passaram na validação lógica.
-                    Revise visualmente a direção das setas antes de publicar.
+                    As conexões passaram na validação lógica. Revise visualmente
+                    a direção das setas antes de publicar.
                   </p>
                 )}
                 <details className="audit-map-details">
@@ -1573,8 +1850,9 @@ export function TourEditor({ initial }: { initial: State }) {
                             .filter((link) => link.visible)
                             .map(
                               (link) =>
-                                config.scenes.find((item) => item.id === link.to)?.name ||
-                                "Destino inválido",
+                                config.scenes.find(
+                                  (item) => item.id === link.to,
+                                )?.name || "Destino inválido",
                             )
                             .join(" · ") || "Sem conexões"}
                         </p>
