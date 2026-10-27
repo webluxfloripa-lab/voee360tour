@@ -1,0 +1,35 @@
+{
+  "baseCommit": "98ff32c5b40a1fcf25fd95ab40903da9dabf5e2c",
+  "build": "passed",
+  "typecheck": "passed",
+  "lint": "passed",
+  "unitTests": {
+    "passed": 24,
+    "files": 5
+  },
+  "browserRegression": {
+    "uniqueCases": 22,
+    "fullRun": {
+      "startTime": "2026-10-27T23:55:52.812Z",
+      "duration": 134310.456,
+      "expected": 21,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "recheck": {
+      "startTime": "2026-10-27T23:58:23.096Z",
+      "duration": 18422.699999999997,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "note": "Initial audit fixture first render exceeded the default 5s assertion while a local build was running. Its initial readiness wait now allows 15s. Both mobile and desktop audit cases passed on recheck; the other 21 regression cases passed, including every new mobile gesture and viewport case. CI runs the complete suite on the final commit."
+  },
+  "limits": [
+    "Provider requests intercepted in browser tests",
+    "Android touch emulated; no physical device or owner login",
+    "Real customer data inspected read-only; no schema changes or private tour publication"
+  ]
+}

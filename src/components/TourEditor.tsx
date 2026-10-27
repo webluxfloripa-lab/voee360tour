@@ -101,6 +101,27 @@ export function TourEditor({ initial }: { initial: State }) {
     if (viewSnapshot) setViewSnapshot(null);
     else setDialog(null);
   });
+  const connecting = flow !== null;
+  useEffect(() => {
+    const mobile = window.matchMedia("(max-width: 700px)");
+    let frame = 0;
+    const reveal = () => {
+      if (!connecting || !mobile.matches) return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() =>
+        document.querySelector(".editor-panorama-wrap")?.scrollIntoView({
+          block: "start",
+          behavior: "instant",
+        }),
+      );
+    };
+    reveal();
+    mobile.addEventListener("change", reveal);
+    return () => {
+      cancelAnimationFrame(frame);
+      mobile.removeEventListener("change", reveal);
+    };
+  }, [connecting]);
   const row = config.scenes.find((s) => s.id === sceneId),
     arrow = row?.links.find((a) => a.id === selected),
     dirty = JSON.stringify(config) !== JSON.stringify(saved),
@@ -198,7 +219,7 @@ export function TourEditor({ initial }: { initial: State }) {
     requestAnimationFrame(() =>
       document
         .querySelector(".editor-panorama-wrap")
-        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
     );
   }
   function editConnection(id: string, arrowId: string) {
@@ -475,7 +496,7 @@ export function TourEditor({ initial }: { initial: State }) {
       ? window.location.origin + "/t/" + project.slug
       : "";
   return (
-    <div className="editor-root">
+    <div className={"editor-root" + (flow ? " connection-active" : "")}>
       <header className="editor-heading">
         <div className="editor-title">
           <Link
@@ -760,21 +781,42 @@ export function TourEditor({ initial }: { initial: State }) {
                       setTab("arrow");
                     }}
                     onPlace={place}
-                    onMove={(id, pitch, yaw) =>
-                      commit({
-                        ...config,
-                        scenes: config.scenes.map((s) =>
-                          s.id === sceneId
-                            ? {
-                                ...s,
-                                links: s.links.map((a) =>
-                                  a.id === id ? { ...a, pitch, yaw } : a,
-                                ),
-                              }
-                            : s,
-                        ),
-                      })
-                    }
+                    onMove={(id, pitch, yaw) => {
+                      if (
+                        flow?.step === "destination" &&
+                        flow.marker.id === id
+                      ) {
+                        setFlow({
+                          ...flow,
+                          marker: { ...flow.marker, pitch, yaw },
+                        });
+                      } else if (
+                        flow?.step === "review" &&
+                        flow.back?.id === id
+                      ) {
+                        setFlow({
+                          ...flow,
+                          back: { ...flow.back, pitch, yaw },
+                        });
+                      } else if (!flow || flow.step === "done") {
+                        setSelected(id);
+                        setTab("arrow");
+                        commit({
+                          ...config,
+                          scenes: config.scenes.map((s) =>
+                            s.id === sceneId
+                              ? {
+                                  ...s,
+                                  links: s.links.map((a) =>
+                                    a.id === id ? { ...a, pitch, yaw } : a,
+                                  ),
+                                }
+                              : s,
+                          ),
+                        });
+                      } else return false;
+                      return true;
+                    }}
                     onNavigate={(id) => {
                       setSceneId(id);
                       setSelected("");
@@ -801,11 +843,16 @@ export function TourEditor({ initial }: { initial: State }) {
                 </button>
               </div>
             )}
+            {mode === "pan" && (selected || flow?.step === "destination") && (
+              <div className="arrow-gesture-hint">
+                Segure a seta e arraste para ajustar a posição.
+              </div>
+            )}
             {mode === "place" && (
               <div className="placement-tip">
                 {flow?.step === "return"
                   ? "Arraste para girar. Toque na passagem que retorna ao ambiente anterior."
-                  : "Toque na passagem para escolher o próximo ambiente."}
+                  : "Toque na passagem. Depois escolha o destino e posicione a volta."}
               </div>
             )}
           </div>
@@ -1720,7 +1767,7 @@ export function TourEditor({ initial }: { initial: State }) {
                         .querySelector(".editor-panorama-wrap")
                         ?.scrollIntoView({
                           behavior: "smooth",
-                          block: "center",
+                          block: "start",
                         });
                     }}
                   >

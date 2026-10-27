@@ -26,7 +26,7 @@ export default function AdminPanorama({
   mode: "pan" | "place" | "drag" | "preview";
   onSelect: (id: string) => void;
   onPlace: (pitch: number, yaw: number) => void;
-  onMove: (id: string, pitch: number, yaw: number) => void;
+  onMove: (id: string, pitch: number, yaw: number) => boolean | void;
   onNavigate: (id: string) => void;
   onView: (pitch: number, yaw: number, hfov: number) => void;
 }) {
@@ -65,7 +65,13 @@ export default function AdminPanorama({
     x: number;
     y: number;
     moved: boolean;
+    armed: boolean;
   } | null>(null);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function clearHold() {
+    if (holdTimer.current) clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+  }
   function refresh() {
     const v = viewer.current;
     if (!v || !ready.current) return;
@@ -112,28 +118,58 @@ export default function AdminPanorama({
         activate();
       }
     });
+    let suppressClick = false;
+    // Keep Pannellum's mouse/touch handlers from rotating behind an arrow.
+    for (const event of ["mousedown", "touchstart"] as const)
+      div.addEventListener(
+        event,
+        (e) => {
+          if (props.current.mode !== "preview") {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        },
+        { passive: false },
+      );
+    div.addEventListener("contextmenu", (e) => e.preventDefault());
     div.addEventListener("pointerdown", (e) => {
-      if (props.current.mode === "preview" || props.current.mode === "pan")
+      if (props.current.mode === "preview" || !e.isPrimary || e.button !== 0)
         return;
       e.preventDefault();
       e.stopPropagation();
-      props.current.onSelect(a.id);
-      if (props.current.mode !== "drag") return;
+      clearHold();
+      suppressClick = false;
       div.setPointerCapture(e.pointerId);
-      drag.current = {
+      const d = {
         id: a.id,
         pitch: a.pitch,
         yaw: a.yaw,
         x: e.clientX,
         y: e.clientY,
         moved: false,
+        armed: props.current.mode === "drag",
       };
+      drag.current = d;
+      if (d.armed) div.classList.add("is-dragging");
+      else
+        holdTimer.current = setTimeout(() => {
+          if (drag.current !== d) return;
+          d.armed = true;
+          div.classList.add("is-dragging");
+        }, 350);
     });
     div.addEventListener("pointermove", (e) => {
       const d = drag.current;
       if (!d || d.id !== a.id) return;
       e.preventDefault();
       e.stopPropagation();
+      if (!d.armed) {
+        if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 7) {
+          clearHold();
+          suppressClick = true;
+        }
+        return;
+      }
       const [p, y] = v.mouseEventToCoords(e);
       d.pitch = clampPitch(p);
       d.yaw = wrapYaw(y);
@@ -151,19 +187,24 @@ export default function AdminPanorama({
       const d = drag.current;
       if (!d || d.id !== a.id) return;
       e.stopPropagation();
+      clearHold();
       drag.current = null;
+      div.classList.remove("is-dragging");
       if (div.hasPointerCapture(e.pointerId))
         div.releasePointerCapture(e.pointerId);
-      if (d.moved && e.type !== "pointercancel")
-        props.current.onMove(d.id, d.pitch, d.yaw);
-      else refresh();
+      suppressClick ||= d.moved || e.type !== "pointerup";
+      if (d.armed && d.moved && e.type === "pointerup") {
+        if (props.current.onMove(d.id, d.pitch, d.yaw) === false) refresh();
+      } else if (e.type !== "pointerup") refresh();
     };
     div.addEventListener("pointerup", finish);
     div.addEventListener("pointercancel", finish);
+    div.addEventListener("lostpointercapture", finish);
     div.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      activate();
+      if (!suppressClick) activate();
+      suppressClick = false;
     });
   }
   useEffect(() => {
@@ -171,6 +212,7 @@ export default function AdminPanorama({
     let observer: ResizeObserver | undefined;
     const container = el.current;
     ready.current = false;
+    clearHold();
     drag.current = null;
     setLoading(true);
     setFailed(false);
@@ -270,6 +312,7 @@ export default function AdminPanorama({
     return () => {
       alive = false;
       ready.current = false;
+      clearHold();
       drag.current = null;
       observer?.disconnect();
       container?.removeEventListener("click", place);

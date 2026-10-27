@@ -1,0 +1,73 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> voee360tour@0.1.0 test:e2e
+> DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 playwright test
+
+[WebServer] (node:44) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+[WebServer] (node:57) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:57) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 22 tests using 1 worker
+
+(node:92) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [mobile] › tests/e2e/access.spec.ts:10:1 › login renders, password is hidden, has no horizontal overflow (2.7s)
+  ✓   2 [mobile] › tests/e2e/access.spec.ts:44:1 › admin cannot be accessed anonymously on direct refresh (4.2s)
+  ✓   3 [mobile] › tests/e2e/access.spec.ts:55:1 › recovery form never sets a password without a valid invitation (594ms)
+  ✓   4 [mobile] › tests/e2e/access.spec.ts:65:1 › malformed public tour and iframe links return 404 instead of server errors (1.4s)
+  ✘   5 [mobile] › tests/e2e/audit.spec.ts:4:1 › route audit explains isolated rooms and guides a real bidirectional connection (12.0s)
+(node:226) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   6 [mobile] › tests/e2e/connections.spec.ts:35:1 › guided connection: cancellation, physical return, persistence, independent edit, undo redo and real navigation (11.4s)
+  ✓   7 [mobile] › tests/e2e/connections.spec.ts:181:1 › one-way pending survives refresh and completing or reopening it never duplicates arrows (5.1s)
+  ✓   8 [mobile] › tests/e2e/editor.spec.ts:3:1 › admin UI: upload real panoramas, independent return, save publish restore refresh (9.0s)
+  ✓   9 [mobile] › tests/e2e/editor.spec.ts:149:1 › create client and project through UI (2.7s)
+  ✓  10 [mobile] › tests/e2e/mobile-positioning.spec.ts:59:1 › visual destinations and hold-drag preserve independent return, undo, cancellation and persistence (9.7s)
+  ✓  11 [mobile] › tests/e2e/mobile-positioning.spec.ts:156:1 › compact connection actions remain reachable on small portrait and landscape screens (2.7s)
+(node:386) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  12 [desktop] › tests/e2e/access.spec.ts:10:1 › login renders, password is hidden, has no horizontal overflow (1.8s)
+  ✓  13 [desktop] › tests/e2e/access.spec.ts:44:1 › admin cannot be accessed anonymously on direct refresh (2.1s)
+  ✓  14 [desktop] › tests/e2e/access.spec.ts:55:1 › recovery form never sets a password without a valid invitation (252ms)
+  ✓  15 [desktop] › tests/e2e/access.spec.ts:65:1 › malformed public tour and iframe links return 404 instead of server errors (407ms)
+  ✓  16 [desktop] › tests/e2e/audit.spec.ts:4:1 › route audit explains isolated rooms and guides a real bidirectional connection (11.0s)
+  ✓  17 [desktop] › tests/e2e/connections.spec.ts:35:1 › guided connection: cancellation, physical return, persistence, independent edit, undo redo and real navigation (10.1s)
+  ✓  18 [desktop] › tests/e2e/connections.spec.ts:181:1 › one-way pending survives refresh and completing or reopening it never duplicates arrows (5.9s)
+  ✓  19 [desktop] › tests/e2e/editor.spec.ts:3:1 › admin UI: upload real panoramas, independent return, save publish restore refresh (11.5s)
+  ✓  20 [desktop] › tests/e2e/editor.spec.ts:149:1 › create client and project through UI (3.7s)
+  ✓  21 [desktop] › tests/e2e/mobile-positioning.spec.ts:59:1 › visual destinations and hold-drag preserve independent return, undo, cancellation and persistence (12.9s)
+  ✓  22 [desktop] › tests/e2e/mobile-positioning.spec.ts:156:1 › compact connection actions remain reachable on small portrait and landscape screens (3.4s)
+
+
+  1) [mobile] › tests/e2e/audit.spec.ts:4:1 › route audit explains isolated rooms and guides a real bidirectional connection
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Tour QA', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('heading', { name: 'Tour QA', exact: true }) with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Tour QA', exact: true })
+
+
+      11 |   await expect(
+      12 |     page.getByRole("heading", { name: "Tour QA", exact: true }),
+    > 13 |   ).toBeVisible();
+         |     ^
+      14 |
+      15 |   await page
+      16 |     .locator("input[type=file][multiple]")
+        at /workspace/scratch/c387d84efa19/voee360tour/tests/e2e/audit.spec.ts:13:5
+
+    Error Context: test-results/audit-route-audit-explains-0145d-al-bidirectional-connection-mobile/error-context.md
+
+  1 failed
+    [mobile] › tests/e2e/audit.spec.ts:4:1 › route audit explains isolated rooms and guides a real bidirectional connection
+  21 passed (2.2m)

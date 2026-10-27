@@ -91,3 +91,5 @@ Consulte `docs/OPERACAO.md`, `docs/VALIDACAO.md` e `docs/ARQUITETURA.md`.
 No panorama, escolha **Adicionar seta**, toque na passagem e selecione o próximo ambiente no painel **Conectar ambiente**. Use **Continuar e posicionar volta**, marque a passagem no panorama de destino, escolha **Concluir conexão** e **Salvar rascunho**. O painel **Conexões entre ambientes** permite retomar voltas pendentes, editar cada direção e testar a navegação sem publicar o tour.
 
 Veja [a auditoria e os limites de homologação](docs/AUDITORIA-CONEXOES.md).
+
+No celular, use as miniaturas para escolher o destino e segure a seta para arrastá-la. Veja [a auditoria mobile e as capturas](docs/AUDITORIA-MOBILE.md).
