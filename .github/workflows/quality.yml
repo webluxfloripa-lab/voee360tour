@@ -42,4 +42,9 @@ jobs:
       - name: Unit tests
         run: npm test
       - name: Mobile and desktop browser regression
+        # The app requires these PUBLIC build-time values. Browser fixtures
+        # intercept all provider requests; this key is intentionally invalid.
+        env:
+          VITE_SUPABASE_URL: https://fbfdchnttkiovcpwcgfn.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_fixture_not_a_real_key
         run: npm run test:e2e
