@@ -3894,3 +3894,484 @@ small {
     padding-bottom: 200px;
   }
 }
+
+/* Mobile connection workspace: preserve the panorama and keep actions visible. */
+.admin-arrow {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.admin-arrow.is-dragging {
+  outline: 3px solid #b5ed80;
+  outline-offset: 6px;
+  cursor: grabbing !important;
+  filter: drop-shadow(0 0 8px #b5ed80);
+}
+.arrow-gesture-hint {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  left: 54px;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 8px 11px;
+  border-radius: 9px;
+  color: #24351d;
+  background: #f8fbeeeb;
+  font-size: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+.destination-picker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.destination-picker-heading .icon-button {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 6px;
+}
+.destination-cards {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  padding: 3px 2px 6px;
+  min-width: 0;
+}
+.destination-card {
+  position: relative;
+  flex: 0 0 106px;
+  min-width: 0;
+  padding: 3px;
+  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid #e0e5db;
+  border-radius: 10px;
+  scroll-snap-align: start;
+}
+.destination-card.active {
+  border-color: #6e964c;
+  background: #f1f8e8;
+}
+.destination-card img,
+.destination-no-image {
+  width: 100%;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.destination-no-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #eef1eb;
+  color: #607153;
+  font-size: 10px;
+}
+.destination-card strong {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  padding: 3px 2px;
+}
+.destination-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  border-radius: 50%;
+  background: #e0fac9;
+  color: #304c1c;
+  padding: 2px;
+  display: flex;
+}
+.destination-selected {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.destination-selected small {
+  display: block;
+  color: #7c5d27;
+}
+.connection-footnote {
+  display: block;
+  margin-top: 10px;
+  color: #58664e;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.connection-panel > .connection-buttons {
+  margin-top: 14px;
+}
+@media (max-width: 900px) {
+  .connection-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 6px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  }
+  .connection-panel > .connection-panel-heading,
+  .connection-panel > h2,
+  .connection-panel > .connection-path,
+  .connection-panel > .connection-buttons {
+    flex-shrink: 0;
+  }
+  .connection-panel-heading .icon-button {
+    min-height: 32px;
+    min-width: 32px;
+    padding: 6px;
+  }
+  .connection-step {
+    font-size: 10px;
+    letter-spacing: 0.8px;
+  }
+  .connection-panel h2 {
+    font-size: 17px;
+    margin: 0;
+    letter-spacing: -0.4px;
+  }
+  .connection-panel .connection-path {
+    margin: 0;
+    gap: 6px;
+    flex-wrap: nowrap;
+    font-size: 12px;
+  }
+  .connection-path > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .connection-panel-body {
+    gap: 6px;
+    overflow-y: auto;
+    min-height: 0;
+    overscroll-behavior-y: contain;
+    padding: 2px;
+    font-size: 12px;
+  }
+  .connection-panel-body label {
+    font-size: 12px;
+  }
+  .connection-panel-body select,
+  .connection-panel-body input[type="search"] {
+    font-size: 16px;
+    min-height: 38px;
+    padding: 7px 10px;
+  }
+  .destination-picker-heading {
+    min-height: 30px;
+  }
+  .connection-panel > .connection-buttons {
+    margin: 2px 0 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #e8ecdf;
+  }
+  .connection-buttons > .primary,
+  .step-return .connection-buttons > button {
+    grid-column: 1 / -1;
+  }
+  .connection-buttons button {
+    min-height: 36px;
+    font-size: 11px;
+    padding: 7px 9px;
+  }
+  .connection-buttons > .primary {
+    min-height: 40px;
+    font-size: 12px;
+  }
+  .connection-footnote {
+    display: none;
+  }
+  .connection-panel.collapsed {
+    max-height: 112px;
+  }
+  .connection-directions {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .connection-directions p {
+    font-size: 11px;
+    padding: 7px;
+    overflow-wrap: anywhere;
+  }
+  .connection-directions small {
+    font-size: 10px;
+  }
+  .has-connection ~ .editor-footer {
+    padding-bottom: 0;
+  }
+}
+@media (max-width: 700px) {
+  .editor-heading {
+    flex-wrap: nowrap;
+    padding: 8px;
+    gap: 6px;
+  }
+  .editor-title {
+    width: auto;
+    flex: 1;
+  }
+  .editor-title h1 {
+    max-width: none;
+    font-size: 13px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+  .editor-title .dirty-state,
+  .editor-title .saved-state {
+    font-size: 9px;
+  }
+  .editor-title > .icon-button {
+    min-width: 28px;
+    min-height: 36px;
+  }
+  .editor-actions {
+    width: auto;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .editor-actions button {
+    min-width: 31px;
+    min-height: 36px;
+    padding: 6px;
+  }
+  .editor-actions button svg {
+    width: 15px;
+    height: 15px;
+  }
+  .editor-status {
+    padding: 6px 12px;
+    font-size: 11px;
+    min-height: 31px;
+  }
+  .scene-panel {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .scene-select strong {
+    font-size: 11px;
+  }
+  .scene-list-item {
+    width: 152px;
+  }
+  .editor-workspace {
+    padding: 8px;
+  }
+  .editor-modebar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    margin-bottom: 7px;
+  }
+  .editor-modebar button {
+    font-size: 10px;
+    gap: 4px;
+    min-height: 36px;
+    padding: 6px 3px;
+  }
+  .editor-modebar button svg {
+    width: 12px;
+    flex-shrink: 0;
+  }
+  .editor-panorama-wrap {
+    min-height: max(320px, 54dvh);
+  }
+  .scene-caption {
+    font-size: 12px;
+    padding: 9px 2px 0;
+  }
+  .scene-caption small {
+    display: none;
+  }
+  .connection-active .scene-panel,
+  .connection-active .editor-modebar {
+    display: none;
+  }
+  .connection-active .editor-workspace {
+    padding-top: 4px;
+  }
+  .connection-active .scene-caption {
+    order: -1;
+    padding: 3px 4px 7px;
+  }
+  .connection-active .editor-panorama-wrap {
+    flex: none;
+    height: calc(100dvh - 105px);
+    min-height: 300px;
+  }
+  .connection-active .editor-status {
+    max-height: 46px;
+    overflow-y: auto;
+  }
+  .connection-active .inspector {
+    display: block;
+  }
+  .placement-tip {
+    top: 12px;
+    bottom: auto;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .inspector-body label,
+  .inspector-body > button,
+  .inspector-tabs button {
+    font-size: 12px;
+  }
+  .inspector-body
+    input:not([type="checkbox"]):not([type="range"]):not([type="color"]),
+  .inspector-body select {
+    font-size: 16px;
+  }
+}
+@media (max-width: 350px) {
+  .editor-modebar button {
+    font-size: 9px;
+    gap: 2px;
+  }
+  .editor-actions button {
+    min-width: 28px;
+    padding: 5px;
+  }
+}
+@media (max-width: 900px) and (max-height: 500px) {
+  .connection-panel {
+    max-height: 56dvh;
+    gap: 3px;
+    padding-top: 4px;
+  }
+  .connection-panel h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .connection-panel-heading .icon-button {
+    min-height: 26px;
+    min-width: 30px;
+    padding: 3px;
+  }
+  .connection-buttons button,
+  .connection-buttons > .primary {
+    min-height: 30px;
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+}
+.destination-picker-heading {
+  flex-wrap: wrap;
+}
+.destination-label {
+  flex-basis: 100%;
+}
+.destination-picker-heading select {
+  flex: 1;
+  width: auto;
+}
+.destination-cards {
+  min-height: 88px;
+}
+.destination-card img,
+.destination-no-image {
+  flex-shrink: 0;
+}
+@media (max-width: 900px) {
+  .destination-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .destination-picker-heading {
+    flex-wrap: nowrap;
+  }
+  .destination-selected {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .editor-modebar button {
+    flex-direction: column;
+    min-height: 44px;
+    font-size: 11px;
+    gap: 2px;
+  }
+  .editor-actions button[aria-label="Salvar"] {
+    background: #eef6e5;
+    gap: 4px;
+  }
+  .editor-actions button[aria-label="Salvar"] span {
+    display: inline;
+    font-size: 10px;
+  }
+}
+@media (min-width: 560px) and (max-width: 900px) and (max-height: 500px) {
+  .connection-active .editor-content {
+    grid-template-columns: 1fr;
+  }
+  .connection-active .scene-panel,
+  .connection-active .editor-modebar {
+    display: none;
+  }
+  .connection-active .inspector {
+    display: block;
+  }
+  .connection-panel {
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: auto;
+    width: 48vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 14px 0 0 14px;
+    padding: 8px 10px;
+  }
+  .connection-panel h2 {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+    overflow: visible;
+  }
+  .connection-active .editor-heading,
+  .connection-active .editor-status {
+    width: 52vw;
+  }
+  .connection-active .editor-actions {
+    display: none;
+  }
+  .connection-active .editor-workspace {
+    padding-right: calc(48vw + 8px);
+  }
+  .connection-active .editor-panorama-wrap {
+    height: calc(100dvh - 105px);
+    min-height: 220px;
+  }
+  .connection-panel.collapsed {
+    top: auto;
+    width: 48vw;
+    height: auto;
+    max-height: 112px;
+  }
+}
+@media (max-width: 559px) and (min-height: 501px) and (max-height: 650px) {
+  .connection-panel {
+    max-height: 58dvh;
+  }
+}

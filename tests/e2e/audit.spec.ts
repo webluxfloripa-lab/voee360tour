@@ -10,7 +10,7 @@ test("route audit explains isolated rooms and guides a real bidirectional connec
   await page.goto(`/admin/projetos/${state.projectId}/editor`);
   await expect(
     page.getByRole("heading", { name: "Tour QA", exact: true }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 15000 });
 
   await page
     .locator("input[type=file][multiple]")

@@ -1,0 +1,13 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> voee360tour@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.5 /workspace/scratch/c387d84efa19/voee360tour
+
+
+ Test Files  5 passed (5)
+      Tests  24 passed (24)
+   Start at  20:56:24
+   Duration  2.28s (environment 71%, import 10%, setup 8%, transform 7%, tests 4%)
