@@ -195,6 +195,9 @@ export default function AdminPanorama({
       suppressClick ||= d.moved || e.type !== "pointerup";
       if (d.armed && d.moved && e.type === "pointerup") {
         if (props.current.onMove(d.id, d.pitch, d.yaw) === false) refresh();
+      } else if (e.type === "pointerup" && !suppressClick) {
+        suppressClick = true;
+        activate();
       } else if (e.type !== "pointerup") refresh();
     };
     div.addEventListener("pointerup", finish);
@@ -224,7 +227,13 @@ export default function AdminPanorama({
     // A placement must be a short tap, never the end of a camera gesture.
     let gesture: { x: number; y: number; moved: boolean } | null = null;
     function startGesture(e: PointerEvent) {
-      gesture = { x: e.clientX, y: e.clientY, moved: false };
+      gesture = {
+        x: e.clientX,
+        y: e.clientY,
+        moved: !!(e.target as HTMLElement).closest(
+          ".admin-arrow,.pnlm-controls",
+        ),
+      };
     }
     function moveGesture(e: PointerEvent) {
       if (

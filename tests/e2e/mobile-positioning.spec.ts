@@ -143,6 +143,14 @@ test("visual destinations and hold-drag preserve independent return, undo, cance
   await expect(page.locator(".editor-status")).toContainText("Rascunho salvo");
   expect(state.readSnapshot()).toEqual(moved);
   await page.reload();
+  await expect(page.locator(".panorama-loading")).toHaveCount(0);
+  const outgoing = page.locator(
+    `[data-arrow-id="${moved.scenes[0]!.links[0]!.id}"]`,
+  );
+  await expect(outgoing).not.toHaveClass(/selected/);
+  if (test.info().project.name === "mobile") await outgoing.tap();
+  else await outgoing.click();
+  await expect(outgoing).toHaveClass(/selected/);
   await page.locator(".connections-section summary").click();
   await expect(page.locator(".connections-list article")).toHaveCount(1);
   await expect(page.locator(".connections-list")).toContainText(
