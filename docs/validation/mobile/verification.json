@@ -33,17 +33,24 @@
     "Real customer data inspected read-only; no schema changes or private tour publication"
   ],
   "finalGestureRecheck": {
-    "startTime": "2026-10-28T00:03:00.273Z",
-    "duration": 42329.359000000004,
+    "startTime": "2026-10-28T00:08:14.846Z",
+    "duration": 36149.244,
     "expected": 4,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
   },
   "ciBaseline": {
-    "commit": "bbaa4192ed1f2b0dd75851bdcbaa818d24b8a99b",
-    "runId": 40605852467,
+    "commit": "2b18f8abfdf774bf6e76872034c2f7185ea523fb",
+    "runId": 40606369424,
     "conclusion": "success",
-    "note": "Full suite passed before the added short-tap assertion. Final release CI is recorded in PR #4."
-  }
+    "note": "Full suite passed with short-tap selection assertions; final landscape CSS extension also passed all four focused gesture/viewport tests. Final release CI is recorded in PR #4."
+  },
+  "testedViewports": [
+    "360x800 Android touch emulated",
+    "1440x1000 desktop",
+    "320x568",
+    "640x360",
+    "800x360"
+  ]
 }

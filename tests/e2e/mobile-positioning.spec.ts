@@ -176,6 +176,7 @@ test("compact connection actions remain reachable on small portrait and landscap
   for (const viewport of [
     { width: 320, height: 568 },
     { width: 640, height: 360 },
+    { width: 800, height: 360 },
   ]) {
     await page.setViewportSize(viewport);
     const action = panel.getByRole("button", {

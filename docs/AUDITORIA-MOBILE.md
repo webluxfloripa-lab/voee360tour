@@ -49,7 +49,7 @@ Referências técnicas verificadas: [captura de ponteiro](https://developer.mozi
 
 ## Verificações
 
-Os resultados finais estão em `validation/mobile/verification.json`. A regressão cobre Chromium desktop, toque com Android emulado, 320×568 em pé e 640×360 deitado; seleção por miniatura, busca sem resultados, ida/volta, arraste antes e depois de concluir, cancelamento de gesto, persistência, refresh, desfazer/refazer, ausência de duplicações, navegação real do Pannellum, acesso administrativo e regressões de publicação/restauração com fixtures.
+Os resultados finais estão em `validation/mobile/verification.json`. A regressão cobre Chromium desktop, toque com Android emulado, 320×568 em pé e 640×360/800×360 deitado; seleção por miniatura, busca sem resultados, ida/volta, arraste antes e depois de concluir, cancelamento de gesto, persistência, refresh, desfazer/refazer, ausência de duplicações, navegação real do Pannellum, acesso administrativo e regressões de publicação/restauração com fixtures.
 
 Não houve autenticação da titular nos testes automatizados. Requisições do provedor foram interceptadas no navegador de testes; os dados reais foram conferidos separadamente por consulta somente leitura. O teste em Android emulado não substitui o aparelho físico nem comprova todos os leitores de tela/teclados virtuais. Botões secundários são compactos; os campos mantêm texto de 16px no celular e as ações principais ficam identificadas. Não se afirma conformidade completa de acessibilidade.
 

@@ -3,23 +3,23 @@ npm warn Unknown env config "http-proxy". This will stop working in the next maj
 > voee360tour@0.1.0 test:e2e
 > DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 playwright test tests/e2e/mobile-positioning.spec.ts
 
-[WebServer] (node:31) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (node:44) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 [WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
 [WebServer] npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
-[WebServer] (node:44) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (node:57) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 [WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
-[WebServer] (node:44) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (node:57) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 [WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
 
 Running 4 tests using 1 worker
 
-(node:79) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(node:92) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 (Use `node --trace-warnings ...` to show where the warning was created)
-  ✓  1 [mobile] › tests/e2e/mobile-positioning.spec.ts:59:1 › visual destinations and hold-drag preserve independent return, undo, cancellation and persistence (16.7s)
-  ✓  2 [mobile] › tests/e2e/mobile-positioning.spec.ts:164:1 › compact connection actions remain reachable on small portrait and landscape screens (2.5s)
-(node:169) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+  ✓  1 [mobile] › tests/e2e/mobile-positioning.spec.ts:59:1 › visual destinations and hold-drag preserve independent return, undo, cancellation and persistence (12.2s)
+  ✓  2 [mobile] › tests/e2e/mobile-positioning.spec.ts:164:1 › compact connection actions remain reachable on small portrait and landscape screens (3.1s)
+(node:184) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
 (Use `node --trace-warnings ...` to show where the warning was created)
-  ✓  3 [desktop] › tests/e2e/mobile-positioning.spec.ts:59:1 › visual destinations and hold-drag preserve independent return, undo, cancellation and persistence (11.8s)
-  ✓  4 [desktop] › tests/e2e/mobile-positioning.spec.ts:164:1 › compact connection actions remain reachable on small portrait and landscape screens (4.0s)
+  ✓  3 [desktop] › tests/e2e/mobile-positioning.spec.ts:59:1 › visual destinations and hold-drag preserve independent return, undo, cancellation and persistence (12.3s)
+  ✓  4 [desktop] › tests/e2e/mobile-positioning.spec.ts:164:1 › compact connection actions remain reachable on small portrait and landscape screens (3.4s)
 
-  4 passed (42.3s)
+  4 passed (36.1s)
