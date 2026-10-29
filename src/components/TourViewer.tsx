@@ -12,18 +12,55 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import type { Snapshot } from "../lib/model";
+import type { Asset, Snapshot } from "../lib/model";
+import { signedAssets } from "../lib/api";
+import { useDialogFocus } from "../lib/useDialogFocus";
 import { loadPannellum } from "../lib/pannellum-loader";
 import { tourMotion, TOUR_ROTATION_SPEED } from "../lib/tour-motion";
 export default function TourViewer({
   snapshot,
   urls,
   embed = false,
+  media,
 }: {
   snapshot: Snapshot;
   urls: Record<string, string>;
   embed?: boolean;
+  media?: Pick<Asset, "id" | "path">[];
 }) {
+  const [activeUrls, setActiveUrls] = useState(urls);
+  const [renewing, setRenewing] = useState(false);
+  const mediaRef = useRef(media);
+  mediaRef.current = media;
+  const previousSnapshot = useRef<Snapshot | null>(null);
+  const lastRenewed = useRef(Date.now());
+  const renewal = useRef<Promise<void> | null>(null);
+  async function refreshMedia() {
+    if (!mediaRef.current?.length) return;
+    if (renewal.current) return renewal.current;
+    renewal.current = signedAssets(mediaRef.current)
+      .then((next) => {
+        lastRenewed.current = Date.now();
+        setActiveUrls(next);
+      })
+      .finally(() => { renewal.current = null; });
+    return renewal.current;
+  }
+  useEffect(() => { setActiveUrls(urls); lastRenewed.current = Date.now(); }, [urls]);
+  useEffect(() => {
+    let alive = true;
+    const refreshIfDue = () => {
+      if (alive && Date.now() - lastRenewed.current >= 45 * 60 * 1000)
+        void refreshMedia().catch(() => { /* Keep usable links; retry on return or button. */ });
+    };
+    const interval = window.setInterval(refreshIfDue, 60 * 1000);
+    document.addEventListener("visibilitychange", refreshIfDue);
+    return () => {
+      alive = false;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshIfDue);
+    };
+  }, []);
   const el = useRef<HTMLDivElement>(null),
     viewer = useRef<any>(null),
     history = useRef<string[]>([]),
@@ -37,17 +74,22 @@ export default function TourViewer({
     [failed, setFailed] = useState(false),
     [attempt, setAttempt] = useState(0),
     [query, setQuery] = useState("");
+  useDialogFocus(menu, () => setMenu(false));
   useEffect(() => {
     let alive = true;
     let observer: ResizeObserver | undefined;
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    playingRef.current = snapshot.settings.autoRotate && !preference.matches;
+    const sameTour = previousSnapshot.current === snapshot;
+    if (!sameTour) playingRef.current = snapshot.settings.autoRotate && !preference.matches;
     setPlaying(playingRef.current);
     setLoading(true);
     setFailed(false);
-    history.current = [];
-    currentRef.current = snapshot.firstSceneId;
-    setCurrent(snapshot.firstSceneId);
+    const firstScene = sameTour && snapshot.scenes.some((s) => s.id === currentRef.current)
+      ? currentRef.current : snapshot.firstSceneId;
+    if (!sameTour) history.current = [];
+    previousSnapshot.current = snapshot;
+    currentRef.current = firstScene;
+    setCurrent(firstScene);
     function applyPreference() {
       if (preference.matches) {
         playingRef.current = false;
@@ -63,7 +105,7 @@ export default function TourViewer({
         for (const s of snapshot.scenes)
           scenes[s.id] = {
             type: "equirectangular",
-            panorama: urls[s.panoramaAssetId || ""],
+            panorama: activeUrls[s.panoramaAssetId || ""],
             yaw: s.yaw,
             pitch: s.pitch,
             hfov: s.hfov,
@@ -108,12 +150,12 @@ export default function TourViewer({
           };
         const v = p.viewer(el.current, {
           default: {
-            firstScene: snapshot.firstSceneId,
+            firstScene,
             sceneFadeDuration: preference.matches ? 0 : 600,
             autoLoad: true,
             showControls: false,
             compass: false,
-            ...tourMotion(preference.matches || !snapshot.settings.autoRotate),
+            ...tourMotion(preference.matches || !playingRef.current),
             mouseZoom: true,
             strings: { loadingLabel: "Carregando…" },
           },
@@ -163,7 +205,7 @@ export default function TourViewer({
       }
       viewer.current = null;
     };
-  }, [snapshot, urls, attempt]);
+  }, [snapshot, activeUrls, attempt]);
   const go = (id: string | null) => {
     if (id && id !== current) viewer.current?.loadScene(id);
     setMenu(false);
@@ -191,8 +233,16 @@ export default function TourViewer({
       {failed && (
         <div className="panorama-empty" role="alert">
           <h2>Não foi possível abrir o panorama.</h2>
-          <button onClick={() => setAttempt((n) => n + 1)}>
-            Tentar novamente
+          <button disabled={renewing} onClick={async () => {
+            setRenewing(true);
+            try {
+              await refreshMedia();
+              setAttempt((n) => n + 1);
+            } catch {
+              setFailed(true);
+            } finally { setRenewing(false); }
+          }}>
+            {renewing ? "Carregando…" : "Tentar novamente"}
           </button>
         </div>
       )}
@@ -261,7 +311,7 @@ export default function TourViewer({
         </button>
       </div>
       {menu && (
-        <aside className="viewer-drawer" aria-label="Menu de ambientes">
+        <aside className="viewer-drawer" role="dialog" aria-modal="true" aria-label="Menu de ambientes">
           <div className="section-heading">
             <h2>Explore os ambientes</h2>
             <button
@@ -291,7 +341,7 @@ export default function TourViewer({
                   aria-current={s.id === current}
                 >
                   <img
-                    src={urls[s.thumbnailAssetId || ""]}
+                    src={activeUrls[s.thumbnailAssetId || ""]}
                     alt={s.name}
                     loading="lazy"
                   />

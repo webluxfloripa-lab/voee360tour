@@ -88,7 +88,7 @@ function PublicTour() {
       </header>
       <ClientOnly fallback={<div className="viewer-placeholder" />}>
         <Suspense fallback={<div className="viewer-placeholder" />}>
-          <Viewer snapshot={t.snapshot} urls={t.urls} />
+          <Viewer snapshot={t.snapshot} urls={t.urls} media={t.media} />
         </Suspense>
       </ClientOnly>
       <section className="public-description">

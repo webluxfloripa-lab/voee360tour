@@ -97,7 +97,7 @@ export async function saveDraft(
     p_expected: revision,
   });
 }
-export async function signedAssets(assets: Asset[]) {
+export async function signedAssets(assets: Pick<Asset, "id" | "path">[]) {
   const map: Record<string, string> = {};
   if (!assets.length) return map;
   for (let offset = 0; offset < assets.length; offset += 100) {
@@ -109,9 +109,12 @@ export async function signedAssets(assets: Asset[]) {
         3600,
       );
     if (error) throw error;
-    data.forEach((r, i) => {
-      if (r.signedUrl && batch[i]) map[batch[i]!.id] = r.signedUrl;
-    });
+    for (let i = 0; i < batch.length; i++) {
+      const result = data?.[i];
+      if (!result?.signedUrl || result.error)
+        throw new Error("Não foi possível carregar uma das fotografias. Tente novamente.");
+      map[batch[i]!.id] = result.signedUrl;
+    }
   }
   return map;
 }
@@ -136,10 +139,11 @@ export async function getPublicTour(slug: string) {
     key: "project_id",
     value: data.project_id,
   });
-  const urls = await signedAssets(
-    (assets as Asset[]).filter((a) => ids.has(a.id)),
-  );
-  return { ...data, snapshot, urls };
+  const media = (assets as Asset[])
+    .filter((a) => ids.has(a.id))
+    .map(({ id, path }) => ({ id, path }));
+  const urls = await signedAssets(media);
+  return { ...data, snapshot, urls, media };
 }
 export function downloadJson(value: unknown, filename: string) {
   const url = URL.createObjectURL(

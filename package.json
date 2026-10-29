@@ -11,10 +11,12 @@
     "build": "DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 vite build",
     "start": "node .output/server/index.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src tests scripts --max-warnings 0",
+    "lint": "eslint src tests scripts cloudflare --max-warnings 0",
     "test": "vitest run",
     "test:e2e": "DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 playwright test",
-    "db:test": "node scripts/test-db.mjs"
+    "db:test": "node scripts/test-db.mjs",
+    "build:cloudflare": "DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 NITRO_PRESET=cloudflare_module vite build && node scripts/package-cloudflare.mjs",
+    "deploy:cloudflare": "npx wrangler deploy --config .cloudflare-output/wrangler.json"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.118.0",
@@ -43,6 +45,7 @@
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "17.13.0",
     "jsdom": "30.1.3",
+    "rolldown": "1.2.15",
     "supabase": "2.122.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1",

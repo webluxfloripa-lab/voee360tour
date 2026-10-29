@@ -2,6 +2,24 @@
 
 Plataforma proprietária de passeios virtuais 360°, com painel exclusivo de SUPER_ADMIN. React 19, TypeScript, TanStack Start/Router, Vite/Nitro, Pannellum e Supabase. O Seven e a Nostro Fumo são clientes independentes.
 
+## Cloudflare Workers
+
+Endereço: https://voee360tour.webluxfloripa-lab.workers.dev/
+
+Configure `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` e `VITE_SITE_URL` antes do build. Use a origem Workers em `VITE_SITE_URL` para que imagens de compartilhamento não dependam da Vercel. Somente a chave publicável deve ser usada; nunca uma chave de serviço.
+
+```bash
+npm ci
+npm run build:cloudflare
+npm run deploy:cloudflare
+```
+
+O empacotamento mantém o mesmo formato da implantação original: Worker com SSR e arquivos estáticos incorporados, sem dependência de outra hospedagem. `cloudflare/security.mjs` aplica os cabeçalhos de segurança, impede cache das páginas administrativas e conserva cache imutável dos arquivos com hash. O build padrão e a detecção de Vercel continuam disponíveis.
+
+Em 29/10/2026 a implantação foi feita pela API. **A atualização automática do Cloudflare pelo GitHub ainda não está configurada.** O repositório agora contém o build reproduzível, mas precisa ser conectado no Workers Builds com os três valores públicos acima; build `npm run build:cloudflare`, deploy `npx wrangler deploy --config .cloudflare-output/wrangler.json`, branch `main`. Nenhum token ou workflow com credenciais foi criado nesta auditoria.
+
+Veja [a auditoria do Cloudflare](docs/AUDITORIA-CLOUDFLARE.md).
+
 ## Executar
 
 Requer Node 24 (ou >=22.12).

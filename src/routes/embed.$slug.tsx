@@ -35,7 +35,7 @@ function EmbedRoute() {
     <main>
       <ClientOnly>
         <Suspense fallback={<div className="viewer-placeholder" />}>
-          <Viewer snapshot={t.snapshot} urls={t.urls} embed />
+          <Viewer snapshot={t.snapshot} urls={t.urls} media={t.media} embed />
         </Suspense>
       </ClientOnly>
     </main>

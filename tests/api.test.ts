@@ -84,3 +84,8 @@ it("signs every image in a larger project without a single unbounded request", a
   expect(fixture.sign).toHaveBeenCalledTimes(3);
   expect(result["204"]).toContain("204.jpg");
 });
+
+it("reports a failed photograph even when the signing batch itself succeeds", async () => {
+  fixture.sign.mockResolvedValue({ data: [{ signedUrl: null, error: "Object not found" }], error: null });
+  await expect(signedAssets([{ id: "photo", path: "missing.jpg" }])).rejects.toThrow("fotografias");
+});
