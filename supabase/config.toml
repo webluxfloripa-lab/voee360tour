@@ -1,0 +1,4 @@
+project_id = "voee360tour"
+
+[functions.delete-tour]
+verify_jwt = true

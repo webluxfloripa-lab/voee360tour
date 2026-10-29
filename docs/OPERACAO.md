@@ -39,3 +39,12 @@ Os redirecionamentos de Auth ainda precisam ser ajustados no dashboard para o do
 - Homologação visual física de todas as setas do Seven e comparação com a configuração publicada mais recente, se diferente do snapshot exportado.
 - Escolher plano de hospedagem comercial antes de abrir os tours a clientes pagantes. O domínio `voee360tour.vercel.app` está vinculado ao preview, sem promover tours de clientes para produção comercial.
 - Validar prévia WhatsApp por um compartilhamento real quando houver publicação e domínio apropriados.
+# Excluir definitivamente um passeio virtual
+
+Em **Projetos e tours**, abra o menu de três pontos do passeio e escolha **Excluir passeio virtual**. Digite o identificador exibido e confirme **Excluir definitivamente**. A exclusão é irreversível e remove o projeto, fotos, ambientes, setas, rascunhos, publicações e versões; o cadastro do cliente permanece. Se o logo do cliente pertencer ao passeio excluído, somente essa referência é removida.
+
+O servidor valida a sessão e o papel de superadministradora. A chave administrativa fica exclusivamente na Edge Function `delete-tour`. O passeio sai do acesso público antes da remoção dos arquivos pelo Storage API. A finalização no banco só ocorre após a confirmação de que não restam objetos do passeio. Não há exclusão direta de metadados de Storage por SQL em produção.
+
+Se a conexão cair ou a remoção de arquivos falhar, o projeto fica arquivado com **Exclusão pendente**. Use **Concluir exclusão** no mesmo menu. Edição, reabertura e novos uploads ficam bloqueados durante esse processo. O banco conserva apenas um recibo de operação sem nome, identificador, conteúdo ou caminhos do passeio.
+
+Verificações desta entrega: 37 testes de aplicação; 45 verificações locais de banco, incluindo autorização, mídia ainda presente, retomada, exclusão física de registros e preservação de outros projetos. Nenhum passeio real foi excluído para testar a função.

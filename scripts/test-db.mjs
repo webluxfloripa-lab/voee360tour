@@ -207,5 +207,50 @@ await reject(
     ),
   "public signup blocked by database guard",
 );
+// Hard deletion is tested only against an isolated project in this local DB.
+await db.exec(`select set_config('request.jwt.claim.sub','${uid}',false)`);
+const disposable = (await rpc("select public.manage_project($1::jsonb) id", [JSON.stringify({ client_id: client, title: "Disposable deletion QA", slug: "disposable-delete-qa" })]))[0].id;
+const deleteAssets = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()];
+for (let i=0;i<deleteAssets.length;i++) {
+  const path=`projects/${disposable}/${deleteAssets[i]}.jpg`;
+  await db.query("insert into storage.objects(bucket_id,name,metadata) values('tour-media',$1,'{\"size\":100,\"mimetype\":\"image/jpeg\"}')",[path]);
+  await rpc("select public.register_asset($1::jsonb)",[JSON.stringify({id:deleteAssets[i],project_id:disposable,path,kind:["panorama","thumbnail","logo"][i],width:i===0?2000:480,height:i===0?1000:240,content_type:"image/jpeg",file_size:100,sha256:"b".repeat(64)})]);
+}
+const deleteSnapshot=structuredClone(snap);
+deleteSnapshot.title="Disposable deletion QA";
+deleteSnapshot.scenes[0].panoramaAssetId=deleteAssets[0];
+deleteSnapshot.scenes[0].thumbnailAssetId=deleteAssets[1];
+deleteSnapshot.branding.logoAssetId=deleteAssets[2];
+const deleteRevision=(await rpc("select public.save_draft($1,$2::jsonb,(select revision from public.tour_drafts where project_id=$1)) id",[disposable,JSON.stringify(deleteSnapshot)]))[0].id;
+await rpc("select public.publish_tour($1,$2,'Disposable local QA')",[disposable,deleteRevision]);
+await db.query("update public.clients set logo_asset_id=$1 where id=$2",[deleteAssets[2],client]);
+await db.query("insert into private.legacy_imports(project_id,source_snapshot,media_inventory) values($1,'{}','[]')",[disposable]);
+await db.query("insert into private.media_import_manifest(id,project_id,manifest) values(gen_random_uuid(),$1,'{}')",[disposable]);
+await reject(()=>rpc("select public.prepare_project_deletion($1,'wrong-slug')",[disposable]),"deletion requires exact project confirmation");
+await db.exec("select set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',false)");
+await reject(()=>rpc("select public.prepare_project_deletion($1,'disposable-delete-qa')",[disposable]),"ordinary user cannot request deletion");
+await db.exec(`select set_config('request.jwt.claim.sub','${uid}',false)`);
+const job=(await rpc("select public.prepare_project_deletion($1,'disposable-delete-qa') job",[disposable]))[0].job;
+const repeated=(await rpc("select public.prepare_project_deletion($1,'disposable-delete-qa') job",[disposable]))[0].job;
+check(job.job_id===repeated.job_id&&job.paths.length===3,"preparation is scoped and resumable");
+check((await db.query("select status,deletion_pending from public.projects where id=$1",[disposable])).rows[0].deletion_pending&&(await db.query("select * from public.published_tours where project_id=$1",[disposable])).rows.length===0,"deletion immediately withdraws public access");
+await reject(()=>rpc("select public.manage_project($1::jsonb)",[JSON.stringify({id:disposable,status:"draft"})]),"a pending deletion cannot be reopened");
+await reject(()=>rpc("select public.save_draft($1,$2::jsonb,$3)",[disposable,JSON.stringify(deleteSnapshot),deleteRevision]),"a pending deletion cannot be edited");
+await reject(()=>db.query("insert into storage.objects(bucket_id,name,metadata) values('tour-media',$1,'{}')",[`projects/${disposable}/late-upload.jpg`]),"in-flight uploads cannot enter a deleting project");
+await reject(()=>db.query("delete from public.tour_versions where project_id=$1",[disposable]),"history remains immutable while media deletion is pending");
+await reject(()=>rpc("select public.complete_project_deletion($1,$2)",[disposable,job.job_id]),"a browser session cannot finalize deletion directly");
+const service=async(sql,args)=>{await db.exec("set role service_role");try{return (await db.query(sql,args)).rows;}finally{await db.exec("reset role");}};
+await reject(()=>service("select public.complete_project_deletion($1,$2)",[disposable,job.job_id]),"finalization rejects files that still exist in Storage");
+// Local Storage metadata models a successful Storage API deletion here only.
+await db.query("delete from storage.objects where name like $1",[`projects/${disposable}/%`]);
+const deleted=(await service("select public.complete_project_deletion($1,$2) result",[disposable,job.job_id]))[0].result;
+check(deleted.deleted&&deleted.removed_assets===3,"finalization hard-deletes the disposable tour");
+for (const table of ["tour_drafts","tour_versions","published_tours","publication_events","audit_events","scenes","hotspots","project_members","media_assets","private.legacy_imports","private.media_import_manifest","private.project_deletion_jobs"])
+  check((await db.query(`select count(*)::int n from ${table} where project_id=$1`,[disposable])).rows[0].n===0,`no deleted project records remain in ${table}`);
+check((await db.query("select * from public.projects where id=$1",[disposable])).rows.length===0,"deleted project itself is removed from database");
+check((await db.query("select logo_asset_id from public.clients where id=$1",[client])).rows[0].logo_asset_id===null,"client remains with its deleted logo detached");
+check((await db.query("select * from public.projects where id=$1",[other])).rows.length===1,"another tour is preserved");
+await reject(()=>db.query("update public.tour_versions set note='tampered' where project_id=$1",[project]),"other project history is still immutable after deletion");
+check((await service("select public.complete_project_deletion($1,$2) result",[disposable,job.job_id]))[0].result.already_deleted===true,"finalization can be safely retried after completion");
 await db.close();
 console.log("ALL DATABASE TESTS PASSED");

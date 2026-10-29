@@ -1451,6 +1451,9 @@ small {
 .danger:hover {
   background: #f9e4e0;
 }
+.dropdown .danger-text {
+  color: #a83e33;
+}
 .editor-root {
   min-height: 100dvh;
   background: #f4f5f7;

@@ -156,6 +156,23 @@ export function downloadJson(value: unknown, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+export async function deleteProject(projectId: string, confirmation: string) {
+  const { data, error } = await supabase.functions.invoke("delete-tour", {
+    body: { projectId, confirmation },
+  });
+  if (error) {
+    let message = "Não foi possível excluir o passeio. Tente novamente.";
+    if (error.context instanceof Response) {
+      try {
+        const body = await error.context.json();
+        if (typeof body.message === "string") message = body.message;
+      } catch { /* Keep the safe default message. */ }
+    }
+    throw new Error(message);
+  }
+  if (data?.deleted !== true) throw new Error("A exclusão ainda não foi concluída.");
+}
+
 export async function backupProject(
   projectId: string,
   onProgress: (message: string) => void,

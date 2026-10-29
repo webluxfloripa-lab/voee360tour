@@ -40,6 +40,14 @@ function EditorPage({ id }: { id: string }) {
         <p>Carregando editor…</p>
       </main>
     );
+  if (state.project.deletion_pending)
+    return (
+      <main className="center-screen">
+        <h1>Exclusão em andamento.</h1>
+        <p>Volte aos projetos e escolha Concluir exclusão para remover os arquivos e registros restantes.</p>
+        <a href="/admin/projetos">Voltar aos projetos</a>
+      </main>
+    );
   return <TourEditor key={id} initial={state} />;
 }
 

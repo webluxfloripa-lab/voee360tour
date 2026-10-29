@@ -16,10 +16,11 @@ import {
   Archive,
   RotateCcw,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import { AdminShell } from "./AdminShell";
 import { AuthGate } from "./AuthGate";
-import { getDashboard, rpc, signedAssets } from "../lib/api";
+import { deleteProject, getDashboard, rpc, signedAssets } from "../lib/api";
 import { errorText, type Client, type Project } from "../lib/model";
 import { duplicateProject } from "../lib/duplicate";
 type Data = Awaited<ReturnType<typeof getDashboard>>;
@@ -41,20 +42,23 @@ function DashboardContent({ section }: { section: string }) {
     [error, setError] = useState(""),
     [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all"),
-    [modal, setModal] = useState<"client" | "project" | null>(null),
+    [modal, setModal] = useState<"client" | "project" | "delete" | null>(null),
+    [deleteTarget, setDeleteTarget] = useState<Project | null>(null),
+    [deleteConfirmation, setDeleteConfirmation] = useState(""),
+    [notice, setNotice] = useState(""),
     [editClient, setEditClient] = useState<Client | null>(null),
     [editProject, setEditProject] = useState<Project | null>(null),
     [busy, setBusy] = useState(false),
     [thumbs, setThumbs] = useState<Record<string, string>>({}),
     [menu, setMenu] = useState(""),
     [assetUrls, setAssetUrls] = useState<Record<string, string>>({});
-  useDialogFocus(!!modal, () => setModal(null));
+  useDialogFocus(!!modal, () => { if (!busy) setModal(null); });
   async function load() {
     try {
       const d = await getDashboard();
       setData(d);
       const thumbnails = d.assets.filter(
-        (a) => a.kind === "thumbnail" || a.kind === "logo",
+        (a) => (a.kind === "thumbnail" || a.kind === "logo") && !d.projects.find((p) => p.id === a.project_id)?.deletion_pending,
       );
       const urls = await signedAssets(thumbnails);
       setAssetUrls(urls);
@@ -83,11 +87,13 @@ function DashboardContent({ section }: { section: string }) {
   async function action(work: () => Promise<unknown>) {
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       await work();
       await load();
     } catch (e) {
       setError(errorText(e));
+      if (modal === "delete") await load();
     } finally {
       setBusy(false);
       setMenu("");
@@ -143,6 +149,7 @@ function DashboardContent({ section }: { section: string }) {
             </button>
           </div>
         )}
+        {notice && <p className="notice" role="status">{notice}</p>}
         {!data ? (
           <div className="loading-block" role="status">
             <span className="spinner" />
@@ -392,6 +399,8 @@ function DashboardContent({ section }: { section: string }) {
                           params={{ id: p.id }}
                           className="project-cover"
                           aria-label={"Editar " + p.title}
+                          aria-disabled={p.deletion_pending || undefined}
+                          onClick={(e) => { if (p.deletion_pending) e.preventDefault(); }}
                         >
                           {thumbs[p.id] ? (
                             <img
@@ -412,7 +421,7 @@ function DashboardContent({ section }: { section: string }) {
                                 )}
                               </span>
                               <span>
-                                {p.status === "pending_media"
+                                {p.deletion_pending ? "Exclusão pendente" : p.status === "pending_media"
                                   ? "Aguardando fotografias"
                                   : "Seu espaço começa aqui"}
                               </span>
@@ -420,7 +429,7 @@ function DashboardContent({ section }: { section: string }) {
                           )}
                           <span className={`status-badge ${p.status}`}>
                             <i />
-                            {labels[p.status]}
+                            {p.deletion_pending ? "Exclusão pendente" : labels[p.status]}
                           </span>
                           <span className="cover-360">360°</span>
                         </Link>
@@ -443,6 +452,7 @@ function DashboardContent({ section }: { section: string }) {
                               {menu === p.id && (
                                 <div className="dropdown">
                                   <button
+                                    disabled={busy || p.deletion_pending}
                                     onClick={() => {
                                       setEditProject(p);
                                       setModal("project");
@@ -453,7 +463,7 @@ function DashboardContent({ section }: { section: string }) {
                                     Renomear / endereço
                                   </button>
                                   <button
-                                    disabled={busy}
+                                    disabled={busy || p.deletion_pending}
                                     onClick={() => {
                                       if (
                                         confirm(
@@ -467,7 +477,7 @@ function DashboardContent({ section }: { section: string }) {
                                     Duplicar com mídias próprias
                                   </button>
                                   <button
-                                    disabled={busy}
+                                    disabled={busy || p.deletion_pending}
                                     onClick={() => {
                                       if (
                                         confirm(
@@ -498,6 +508,20 @@ function DashboardContent({ section }: { section: string }) {
                                       ? "Reabrir rascunho"
                                       : "Arquivar"}
                                   </button>
+                                  <button
+                                    className="danger-text"
+                                    disabled={busy}
+                                    onClick={() => {
+                                      setDeleteTarget(p);
+                                      setDeleteConfirmation("");
+                                      setError("");
+                                      setMenu("");
+                                      setModal("delete");
+                                    }}
+                                  >
+                                    <Trash2 size={15} />
+                                    {p.deletion_pending ? "Concluir exclusão" : "Excluir passeio virtual"}
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -524,6 +548,8 @@ function DashboardContent({ section }: { section: string }) {
                             <Link
                               to="/admin/projetos/$id/editor"
                               params={{ id: p.id }}
+                              aria-disabled={p.deletion_pending || undefined}
+                              onClick={(e) => { if (p.deletion_pending) e.preventDefault(); }}
                             >
                               Abrir editor <ArrowRight size={15} />
                             </Link>
@@ -624,7 +650,40 @@ function DashboardContent({ section }: { section: string }) {
           </>
         )}
       </main>
-      {modal && (
+      {modal === "delete" && deleteTarget && (
+        <div className="modal-backdrop">
+          <section className="modal" role="dialog" aria-modal="true" aria-labelledby="delete-tour-title" aria-describedby="delete-tour-description">
+            <h2 id="delete-tour-title">Excluir passeio virtual?</h2>
+            <p id="delete-tour-description">
+              <strong>{deleteTarget.title}</strong> será removido definitivamente, junto com fotos, ambientes, setas, rascunhos e histórico. O link público deixará de funcionar. Esta ação não pode ser desfeita. O cadastro do cliente será mantido.
+            </p>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (busy || deleteConfirmation !== deleteTarget.slug) return;
+              void action(async () => {
+                await deleteProject(deleteTarget.id, deleteConfirmation);
+                setModal(null);
+                setDeleteTarget(null);
+                setNotice("Passeio virtual, arquivos e registros excluídos definitivamente.");
+              });
+            }}>
+              <label>
+                Digite <strong>{deleteTarget.slug}</strong> para confirmar
+                <input aria-label="Identificador para confirmar exclusão" autoComplete="off" spellCheck={false} value={deleteConfirmation} disabled={busy} onChange={(e) => setDeleteConfirmation(e.target.value)} />
+              </label>
+              {error && <p role="alert" className="notice error">{error}</p>}
+              {busy && <p role="status">Excluindo arquivos e registros… Aguarde a conclusão.</p>}
+              <div className="modal-actions">
+                <button type="button" disabled={busy} onClick={() => setModal(null)}>Cancelar</button>
+                <button className="danger" disabled={busy || deleteConfirmation !== deleteTarget.slug}>
+                  {busy ? "Excluindo…" : "Excluir definitivamente"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+      {(modal === "client" || modal === "project") && (
         <div className="modal-backdrop">
           <section
             className="modal"
@@ -725,6 +784,7 @@ function DashboardContent({ section }: { section: string }) {
                             data.projects.some(
                               (p) =>
                                 p.id === a.project_id &&
+                                !p.deletion_pending &&
                                 p.client_id === editClient?.id,
                             ),
                         )

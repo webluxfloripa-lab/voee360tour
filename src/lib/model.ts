@@ -102,6 +102,7 @@ export type Project = {
   slug: string;
   title: string;
   status: "draft" | "published" | "pending_media" | "archived";
+  deletion_pending?: boolean;
   published_version_id: string | null;
   created_at: string;
   updated_at: string;

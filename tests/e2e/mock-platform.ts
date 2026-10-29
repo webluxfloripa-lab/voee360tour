@@ -110,6 +110,19 @@ export async function mockPlatform(page: Page) {
       if (request.method() === "OPTIONS") return json({});
       if (path === "/auth/v1/user") return json(user);
       if (path === "/auth/v1/logout") return json({});
+      if (path === "/functions/v1/delete-tour") {
+        const index = projects.findIndex(p => p.id === body.projectId);
+        if (index < 0) return json({ deleted: true, already_deleted: true });
+        if (body.confirmation !== projects[index]!.slug) return json({ message: "O identificador não confere." }, 409);
+        for (let i=assets.length-1;i>=0;i--) if (assets[i].project_id===body.projectId) {
+          delete files[assets[i].path];
+          assets.splice(i,1);
+        }
+        for (let i=versions.length-1;i>=0;i--) if (versions[i].project_id===body.projectId) versions.splice(i,1);
+        delete drafts[body.projectId];
+        projects.splice(index,1);
+        return json({ deleted: true });
+      }
       if (path.startsWith("/rest/v1/rpc/")) {
         const name = path.split("/").at(-1)!;
         if (name === "is_super_admin") return json(true);
