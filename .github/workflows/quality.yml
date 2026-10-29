@@ -36,6 +36,11 @@ jobs:
         run: npm ci
       - name: Build and generate routes
         run: npm run build
+      - name: Verify Cloudflare production package
+        env:
+          VITE_SUPABASE_URL: https://fbfdchnttkiovcpwcgfn.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_fixture_not_a_real_key
+        run: npm run build:cloudflare
       - name: TypeScript
         run: npm run typecheck
       - name: Lint
