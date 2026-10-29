@@ -26,7 +26,9 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: "npm run dev -- --port 3174",
+    command: process.env.VOEE_WORKER_TEST
+      ? "npm run preview:cloudflare -- --port 3174 --local"
+      : "npm run dev -- --port 3174",
     url: "http://127.0.0.1:3174/login",
     timeout: 60000,
     reuseExistingServer: false,

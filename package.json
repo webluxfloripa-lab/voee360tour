@@ -14,7 +14,10 @@
     "lint": "eslint src tests scripts --max-warnings 0",
     "test": "vitest run",
     "test:e2e": "DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 playwright test",
-    "db:test": "node scripts/test-db.mjs"
+    "db:test": "node scripts/test-db.mjs",
+    "build:cloudflare": "WRANGLER_SEND_METRICS=false DO_NOT_TRACK=1 node scripts/build-cloudflare.mjs",
+    "preview:cloudflare": "WRANGLER_SEND_METRICS=false wrangler dev --config .output/cloudflare/wrangler.json",
+    "deploy:cloudflare": "WRANGLER_SEND_METRICS=false wrangler deploy --config .output/cloudflare/wrangler.json"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.118.0",
@@ -47,6 +50,7 @@
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1",
     "vite": "8.3.5",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "wrangler": "4.155.0"
   }
 }

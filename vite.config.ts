@@ -6,7 +6,14 @@ export default defineConfig({
   resolve: { alias: { "@": new URL("./src", import.meta.url).pathname } },
   plugins: [
     tanstackStart(),
-    nitro({ preset: process.env.VERCEL ? "vercel" : "node-server" }),
+    nitro({
+      preset:
+        process.env.DEPLOY_TARGET === "cloudflare"
+          ? "cloudflare-module"
+          : process.env.VERCEL
+            ? "vercel"
+            : "node-server",
+    }),
     react(),
   ],
   server: { host: "127.0.0.1", port: 3000 },

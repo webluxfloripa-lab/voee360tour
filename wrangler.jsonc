@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "voee360tour",
+  "account_id": "188dcc3035b7371ffeee22cc7da3b7e3",
+  "compatibility_date": "2026-10-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}

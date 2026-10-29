@@ -9,3 +9,6 @@ test-results/
 *.log
 
 supabase/.temp/
+
+.wrangler/
+.dev.vars*
