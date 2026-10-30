@@ -1,61 +1,91 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, LockKeyhole, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Mail, ShieldCheck } from "lucide-react";
 import { Brand } from "../components/Brand";
 import { supabase, configured } from "../lib/supabase";
 import { errorText } from "../lib/model";
+
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Entrar · voee360tour" },
+      { title: "Acessar painel · voee360tour" },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
   component: Login,
 });
+
 function Login() {
-  const nav = useNavigate();
+  const navigate = useNavigate();
   const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
-  const [email, setEmail] = useState(""),
-    [password, setPassword] = useState(""),
-    [visible, setVisible] = useState(false),
-    [busy, setBusy] = useState(false),
-    [message, setMessage] = useState(""),
-    [cooldown, setCooldown] = useState(0);
-  async function login(e: React.FormEvent) {
-    e.preventDefault();
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    setHydrated(true);
+    let mounted = true;
+    try {
+      const lastEmail = window.localStorage.getItem("voee360tour:last-access-email");
+      if (lastEmail) setEmail(lastEmail);
+    } catch {
+      // Private browsing may disable local storage.
+    }
+    if (configured) {
+      void supabase.auth.getUser()
+        .then(async ({ data, error }) => {
+          if (error || !data.user || !mounted) return;
+          const result = await supabase.rpc("is_super_admin");
+          if (mounted && !result.error && result.data === true)
+            await navigate({ to: "/admin/projetos" });
+        })
+        .catch(() => {
+          // The user can still request a passwordless link below.
+        });
+    }
+    return () => {
+      mounted = false;
+    };
+  }, [navigate]);
+
+  async function requestAccess(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     if (busy || Date.now() < cooldown) return;
     setBusy(true);
     setMessage("");
     try {
       if (!configured)
         throw new Error("A conexão da plataforma ainda não foi configurada.");
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const address = email.trim().toLowerCase();
+      if (!address) throw new Error("Informe o e-mail autorizado.");
+      const { error } = await supabase.auth.signInWithOtp({
+        email: address,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: window.location.origin + "/admin/projetos",
+        },
       });
-      setPassword("");
       if (error) throw error;
-      const { data, error: err } = await supabase.rpc("is_super_admin");
-      if (err || !data) {
-        await supabase.auth.signOut();
-        throw new Error("Acesso exclusivo da superadministradora.");
+      try {
+        window.localStorage.setItem("voee360tour:last-access-email", address);
+      } catch {
+        // Remembering the email is optional.
       }
-      await nav({ to: "/admin" });
-    } catch (e) {
-      setMessage(errorText(e));
+      setMessage("Enviamos um link temporário ao e-mail autorizado. Abra a mensagem e toque em Acessar painel. Não é necessário digitar senha.");
+      setCooldown(Date.now() + 60000);
+    } catch (error) {
+      setMessage(errorText(error));
       setCooldown(Date.now() + 3000);
     } finally {
       setBusy(false);
     }
   }
+
   return (
     <main className="login-layout">
       <section className="login-story">
-        <Link to="/" className="brand-link">
-          <Brand />
-        </Link>
+        <Link to="/" className="brand-link"><Brand /></Link>
         <div className="orb-scene">
           <div className="orb-grid" />
           <span className="orbit orbit-one" />
@@ -64,116 +94,41 @@ function Login() {
         </div>
         <div>
           <p className="eyebrow">CADA ESPAÇO, UMA NOVA PERSPECTIVA</p>
-          <h1>
-            O próximo passo
-            <br />é estar <em>dentro.</em>
-          </h1>
-          <p>Transforme espaços reais em experiências que aproximam pessoas.</p>
+          <h1>Seus passeios virtuais,<br />a um clique de <em>distância.</em></h1>
+          <p>Crie, conecte e edite seus ambientes 360° com segurança.</p>
         </div>
-        <span className="story-footer">
-          voee360tour · Sua visão, sem limites de perspectiva.
-        </span>
+        <span className="story-footer">voee360tour · Sua visão, sem limites de perspectiva.</span>
       </section>
       <section className="login-form-section">
-        <div className="mobile-brand">
-          <Brand />
-        </div>
+        <div className="mobile-brand"><Brand /></div>
         <div className="login-form-wrap">
-          <span className="secure-badge">
-            <LockKeyhole size={14} /> ACESSO EXCLUSIVO
-          </span>
+          <span className="secure-badge"><ShieldCheck size={14} /> ACESSO SEM SENHA</span>
           <h2>Seu universo 360°.</h2>
-          <p>
-            Entre para administrar clientes, criar experiências e conectar cada
-            ambiente.
-          </p>
-          <form onSubmit={login}>
+          <p>Use o botão de acesso para receber um link temporário e abrir o editor dos seus passeios.</p>
+          <form onSubmit={requestAccess}>
             <label>
-              E-mail
+              E-mail autorizado
               <input
-                autoComplete="username"
+                autoComplete="email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="voce@empresa.com.br"
+                placeholder="seu@email.com"
               />
             </label>
-            <label>
-              Senha
-              <span className="password-input">
-                <input
-                  autoComplete="current-password"
-                  type={visible ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Sua senha de acesso"
-                />
-                <button
-                  type="button"
-                  className="icon-button"
-                  disabled={!hydrated}
-                  aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
-                  onClick={() => setVisible(!visible)}
-                >
-                  {visible ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </span>
-            </label>
-            <button
-              type="button"
-              className="text-button forgot"
-              disabled={busy || !hydrated}
-              onClick={async () => {
-                if (!email) {
-                  setMessage("Informe seu e-mail para recuperar o acesso.");
-                  return;
-                }
-                setBusy(true);
-                try {
-                  const { error } = await supabase.auth.resetPasswordForEmail(
-                    email,
-                    { redirectTo: window.location.origin + "/definir-senha" },
-                  );
-                  if (error) throw error;
-                  setMessage(
-                    "Se o e-mail estiver autorizado, você receberá as instruções de recuperação.",
-                  );
-                } catch (e) {
-                  setMessage(errorText(e));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              Esqueci minha senha
-            </button>
-            {message && (
-              <p role="status" className="notice">
-                {message}
-              </p>
-            )}
+            {message && <p role="status" className="notice">{message}</p>}
             <button className="primary wide" disabled={busy || !hydrated}>
-              {busy ? "Validando acesso…" : "Entrar no painel"}
-              <ArrowRight size={18} />
+              {busy ? "Enviando acesso…" : "Acessar painel"}
+              {busy ? <Mail size={18} /> : <ArrowRight size={18} />}
             </button>
           </form>
-          <Link className="first-access-link" to="/definir-senha">
-            Primeiro acesso? Ativar meu convite
-          </Link>
           <div className="login-security">
-            <LockKeyhole size={16} />
-            <p>
-              Ambiente protegido. Somente contas convidadas e autorizadas podem
-              acessar.
-            </p>
+            <ShieldCheck size={16} />
+            <p>Não há campo de senha. Somente o e-mail administrador já autorizado recebe acesso ao editor; visitantes não podem alterar ou excluir passeios.</p>
           </div>
         </div>
-        <footer>
-          © {new Date().getFullYear()} voee360tour{" "}
-          <span>Todos os ângulos. Uma plataforma.</span>
-        </footer>
+        <footer>© {new Date().getFullYear()} voee360tour <span>Todos os ângulos. Uma plataforma.</span></footer>
       </section>
     </main>
   );

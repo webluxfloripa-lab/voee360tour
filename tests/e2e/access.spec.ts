@@ -7,29 +7,19 @@ test.beforeEach(async ({ page }) => {
       : route.abort("blockedbyclient");
   });
 });
-test("login renders, password is hidden, has no horizontal overflow", async ({
+test("passwordless access presents email and no password field without overflow", async ({
   page,
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/login");
-  await expect(
-    page.getByRole("heading", { name: "Seu universo 360°." }),
-  ).toBeVisible();
-  expect(
-    await page
-      .locator('input[autocomplete="current-password"]')
-      .getAttribute("type"),
-  ).toBe("password");
-  await page
-    .getByRole("button", { name: "Mostrar senha", exact: true })
-    .click();
-  await expect(
-    page.locator('input[autocomplete="current-password"]'),
-  ).toHaveAttribute("type", "text");
-  await page
-    .getByRole("button", { name: "Ocultar senha", exact: true })
-    .click();
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: /Acessar painel/ })).toBeVisible();
+  await page.getByRole("link", { name: /Acessar painel/ }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole("heading", { name: "Seu universo 360°." })).toBeVisible();
+  await expect(page.locator('input[type="password"]')).toHaveCount(0);
+  await expect(page.getByLabel("E-mail autorizado")).toHaveAttribute("type", "email");
+  await expect(page.getByRole("button", { name: "Acessar painel" })).toBeVisible();
   const size = await page.evaluate(() => ({
     client: document.documentElement.clientWidth,
     scroll: document.documentElement.scrollWidth,
@@ -37,7 +27,7 @@ test("login renders, password is hidden, has no horizontal overflow", async ({
   expect(size.scroll).toBe(size.client);
   expect(errors).toEqual([]);
   await page.screenshot({
-    path: `test-results/login-${test.info().project.name}.png`,
+    path: `test-results/passwordless-${test.info().project.name}.png`,
     fullPage: true,
   });
 });
@@ -47,7 +37,7 @@ test("admin cannot be accessed anonymously on direct refresh", async ({
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/login$/);
   await expect(
-    page.getByRole("button", { name: "Entrar no painel", exact: true }),
+    page.getByRole("button", { name: "Acessar painel", exact: true }),
   ).toBeVisible();
   await page.goto("/admin/projetos");
   await expect(page).toHaveURL(/\/login$/);
