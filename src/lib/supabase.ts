@@ -14,3 +14,13 @@ export const supabase = createClient(
     },
   },
 );
+
+// Public reads must never inherit an administrator's browser session.
+export const publicSupabase = createClient(
+  url || "https://unconfigured.supabase.co",
+  key || "unconfigured",
+  {
+    auth: { storageKey: "voee360tour-public", persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }) },
+  },
+);

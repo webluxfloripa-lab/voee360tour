@@ -13,7 +13,7 @@ export function secureResponse(request, response) {
   if (/^\/admin(?:\/|$)|^\/(login|definir-senha)\/?$/.test(path)) {
     headers.set("Cache-Control", "private, no-store");
     headers.set("X-Frame-Options", "DENY");
-  } else if (!headers.has("Cache-Control")) {
+  } else if (/^\/(t|embed|_serverFn)(?:\/|$)/.test(path) || !headers.has("Cache-Control")) {
     // SSR and server functions can contain expiring image links.
     headers.set("Cache-Control", "no-store");
   }

@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase, publicSupabase } from "./supabase";
 import {
   snapshotSchema,
   clientInputSchema,
@@ -22,10 +22,11 @@ export async function rpc<T>(name: string, args: Record<string, unknown>) {
 export async function fetchAll(
   table: string,
   filter?: { key: string; value: string },
+  client = supabase,
 ) {
   const rows: any[] = [];
   for (let from = 0; ; from += 500) {
-    let q = supabase
+    let q = client
       .from(table)
       .select("*")
       .order("id")
@@ -97,12 +98,12 @@ export async function saveDraft(
     p_expected: revision,
   });
 }
-export async function signedAssets(assets: Pick<Asset, "id" | "path">[]) {
+export async function signedAssets(assets: Pick<Asset, "id" | "path">[], client = supabase) {
   const map: Record<string, string> = {};
   if (!assets.length) return map;
   for (let offset = 0; offset < assets.length; offset += 100) {
     const batch = assets.slice(offset, offset + 100);
-    const { data, error } = await supabase.storage
+    const { data, error } = await client.storage
       .from("tour-media")
       .createSignedUrls(
         batch.map((a) => a.path),
@@ -119,7 +120,7 @@ export async function signedAssets(assets: Pick<Asset, "id" | "path">[]) {
   return map;
 }
 export async function getPublicTour(slug: string) {
-  const { data, error } = await supabase
+  const { data, error } = await publicSupabase
     .from("published_tours")
     .select("project_id,slug,version_id,snapshot,updated_at")
     .eq("slug", slug)
@@ -138,11 +139,11 @@ export async function getPublicTour(slug: string) {
   const assets = await fetchAll("media_assets", {
     key: "project_id",
     value: data.project_id,
-  });
+  }, publicSupabase);
   const media = (assets as Asset[])
     .filter((a) => ids.has(a.id))
     .map(({ id, path }) => ({ id, path }));
-  const urls = await signedAssets(media);
+  const urls = await signedAssets(media, publicSupabase);
   return { ...data, snapshot, urls, media };
 }
 export function downloadJson(value: unknown, filename: string) {
@@ -221,4 +222,23 @@ export async function backupProject(
   a.download = state.project.slug + "-backup.zip";
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+export async function getPublicVersion(slug: string) {
+  const { data, error } = await publicSupabase.from("published_tours")
+    .select("version_id").eq("slug", slug).maybeSingle();
+  if (error) throw error;
+  return data?.version_id as string | undefined;
+}
+
+export async function publishDraft(projectId: string, slug: string, revision: string) {
+  const version = await rpc<string>("publish_tour", {
+    p_project: projectId, p_expected: revision, p_note: "Publicação pelo editor",
+  });
+  // Confirm the version using the same anonymous access as a visitor.
+  // A verification error must not trigger a second publication.
+  try {
+    if (await getPublicVersion(slug) === version) return { version, verified: true };
+  } catch { /* Publication succeeded; report verification separately. */ }
+  return { version, verified: false };
 }

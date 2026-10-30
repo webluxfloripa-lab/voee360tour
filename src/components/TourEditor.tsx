@@ -42,6 +42,7 @@ import { QRCodeSVG } from "qrcode.react";
 import {
   getEditor,
   saveDraft,
+  publishDraft,
   rpc,
   signedAssets,
   downloadJson,
@@ -587,14 +588,12 @@ export function TourEditor({ initial }: { initial: State }) {
               )
                 void execute(async () => {
                   const rev = await persist();
-                  await rpc("publish_tour", {
-                    p_project: project.id,
-                    p_expected: rev,
-                    p_note: "Publicação pelo editor",
-                  });
+                  const publication = await publishDraft(project.id, project.slug, rev);
                   await reload();
                   setStatus(
-                    "Tour publicado. Sua versão anterior continua preservada.",
+                    publication.verified
+                      ? "Tour publicado e confirmado no link público. Sua versão anterior continua preservada."
+                      : "Publicação salva no servidor, mas não foi possível confirmar o link público. Confira o link antes de publicar novamente.",
                   );
                 });
             }}

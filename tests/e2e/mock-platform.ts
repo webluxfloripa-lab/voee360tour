@@ -220,10 +220,15 @@ export async function mockPlatform(page: Page) {
                 ? Object.values(drafts)
                 : table === "tour_versions"
                   ? versions
+                  : table === "published_tours"
+                    ? projects.filter((p) => p.status === "published").map((p) => ({
+                      project_id: p.id, slug: p.slug, version_id: p.published_version_id,
+                      snapshot: versions.find((v) => v.id === p.published_version_id)?.snapshot,
+                    }))
                   : table === "media_assets"
                     ? assets
                     : [];
-        for (const key of ["id", "project_id"]) {
+        for (const key of ["id", "project_id", "slug"]) {
           const f = url.searchParams.get(key);
           if (f?.startsWith("eq."))
             rows = rows.filter((r) => r[key] === f.slice(3));

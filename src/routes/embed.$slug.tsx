@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { lazy, Suspense } from "react";
 import { getPublicTour } from "../lib/api";
+import { usePublishedTour } from "../lib/usePublishedTour";
 const load = createServerFn({ method: "GET" })
   .validator(
     z.object({
@@ -15,6 +16,8 @@ const load = createServerFn({ method: "GET" })
   .handler(async ({ data }) => getPublicTour(data.slug));
 const Viewer = lazy(() => import("../components/TourViewer"));
 export const Route = createFileRoute("/embed/$slug")({
+  staleTime: 0,
+  gcTime: 0,
   loader: async ({ params }) => {
     if (
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(params.slug) ||
@@ -30,7 +33,7 @@ export const Route = createFileRoute("/embed/$slug")({
 });
 
 function EmbedRoute() {
-  const t = Route.useLoaderData();
+  const t = usePublishedTour(Route.useLoaderData());
   return (
     <main>
       <ClientOnly>

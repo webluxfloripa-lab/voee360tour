@@ -1,0 +1,27 @@
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
+const api = vi.hoisted(() => ({ version: vi.fn(), tour: vi.fn() }));
+vi.mock("../src/lib/api", () => ({ getPublicVersion: api.version, getPublicTour: api.tour }));
+import { usePublishedTour } from "../src/lib/usePublishedTour";
+import { emptySnapshot } from "../src/lib/model";
+afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); });
+it("an open public tour refreshes only after a new publication and recovers after a failed read", async () => {
+  const first = {slug: "tour", version_id: "v1", project_id: "p", updated_at: "", snapshot: emptySnapshot("V1"), urls: {}, media: []};
+  const next = {...first, version_id: "v2", snapshot: emptySnapshot("V2")};
+  api.version.mockResolvedValue("v1");
+  api.tour.mockResolvedValue(next);
+  const view = renderHook(() => usePublishedTour(first));
+  await waitFor(() => expect(api.version).toHaveBeenCalled());
+  expect(api.tour).not.toHaveBeenCalled();
+  api.version.mockRejectedValueOnce(new Error("offline"));
+  await act(async () => window.dispatchEvent(new Event("focus")));
+  expect(view.result.current.version_id).toBe("v1");
+  api.version.mockResolvedValue("v2");
+  await act(async () => window.dispatchEvent(new Event("focus")));
+  expect(view.result.current.snapshot.title).toBe("V2");
+  await act(async () => window.dispatchEvent(new Event("focus")));
+  expect(api.tour).toHaveBeenCalledTimes(1);
+  view.unmount();
+  await act(async () => window.dispatchEvent(new Event("focus")));
+  expect(api.tour).toHaveBeenCalledTimes(1);
+});
