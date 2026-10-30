@@ -52,13 +52,17 @@ function DashboardContent({ section }: { section: string }) {
     [thumbs, setThumbs] = useState<Record<string, string>>({}),
     [menu, setMenu] = useState(""),
     [assetUrls, setAssetUrls] = useState<Record<string, string>>({});
-  useDialogFocus(!!modal, () => { if (!busy) setModal(null); });
+  useDialogFocus(!!modal, () => {
+    if (!busy) setModal(null);
+  });
   async function load() {
     try {
       const d = await getDashboard();
       setData(d);
       const thumbnails = d.assets.filter(
-        (a) => (a.kind === "thumbnail" || a.kind === "logo") && !d.projects.find((p) => p.id === a.project_id)?.deletion_pending,
+        (a) =>
+          (a.kind === "thumbnail" || a.kind === "logo") &&
+          !d.projects.find((p) => p.id === a.project_id)?.deletion_pending,
       );
       const urls = await signedAssets(thumbnails);
       setAssetUrls(urls);
@@ -149,7 +153,11 @@ function DashboardContent({ section }: { section: string }) {
             </button>
           </div>
         )}
-        {notice && <p className="notice" role="status">{notice}</p>}
+        {notice && (
+          <p className="notice" role="status">
+            {notice}
+          </p>
+        )}
         {!data ? (
           <div className="loading-block" role="status">
             <span className="spinner" />
@@ -400,7 +408,9 @@ function DashboardContent({ section }: { section: string }) {
                           className="project-cover"
                           aria-label={"Editar " + p.title}
                           aria-disabled={p.deletion_pending || undefined}
-                          onClick={(e) => { if (p.deletion_pending) e.preventDefault(); }}
+                          onClick={(e) => {
+                            if (p.deletion_pending) e.preventDefault();
+                          }}
                         >
                           {thumbs[p.id] ? (
                             <img
@@ -421,15 +431,19 @@ function DashboardContent({ section }: { section: string }) {
                                 )}
                               </span>
                               <span>
-                                {p.deletion_pending ? "Exclusão pendente" : p.status === "pending_media"
-                                  ? "Aguardando fotografias"
-                                  : "Seu espaço começa aqui"}
+                                {p.deletion_pending
+                                  ? "Exclusão pendente"
+                                  : p.status === "pending_media"
+                                    ? "Aguardando fotografias"
+                                    : "Seu espaço começa aqui"}
                               </span>
                             </div>
                           )}
                           <span className={`status-badge ${p.status}`}>
                             <i />
-                            {p.deletion_pending ? "Exclusão pendente" : labels[p.status]}
+                            {p.deletion_pending
+                              ? "Exclusão pendente"
+                              : labels[p.status]}
                           </span>
                           <span className="cover-360">360°</span>
                         </Link>
@@ -520,7 +534,9 @@ function DashboardContent({ section }: { section: string }) {
                                     }}
                                   >
                                     <Trash2 size={15} />
-                                    {p.deletion_pending ? "Concluir exclusão" : "Excluir passeio virtual"}
+                                    {p.deletion_pending
+                                      ? "Concluir exclusão"
+                                      : "Excluir passeio virtual"}
                                   </button>
                                 </div>
                               )}
@@ -549,9 +565,23 @@ function DashboardContent({ section }: { section: string }) {
                               to="/admin/projetos/$id/editor"
                               params={{ id: p.id }}
                               aria-disabled={p.deletion_pending || undefined}
-                              onClick={(e) => { if (p.deletion_pending) e.preventDefault(); }}
+                              onClick={(e) => {
+                                if (p.deletion_pending) e.preventDefault();
+                              }}
                             >
-                              Abrir editor <ArrowRight size={15} />
+                              Editar ambientes <ArrowRight size={15} />
+                            </Link>
+                            <Link
+                              to="/admin/projetos/$id/editor"
+                              params={{ id: p.id }}
+                              hash="conteudo"
+                              aria-disabled={p.deletion_pending || undefined}
+                              onClick={(e) => {
+                                if (p.deletion_pending) e.preventDefault();
+                              }}
+                              aria-label={"Personalizar " + p.title}
+                            >
+                              Textos e layout
                             </Link>
                             {p.status === "published" && (
                               <a
@@ -560,7 +590,7 @@ function DashboardContent({ section }: { section: string }) {
                                 rel="noreferrer"
                                 aria-label={"Visitar " + p.title}
                               >
-                                <ArrowUpRight size={18} />
+                                Visualizar <ArrowUpRight size={16} />
                               </a>
                             )}
                           </div>
@@ -652,30 +682,67 @@ function DashboardContent({ section }: { section: string }) {
       </main>
       {modal === "delete" && deleteTarget && (
         <div className="modal-backdrop">
-          <section className="modal" role="dialog" aria-modal="true" aria-labelledby="delete-tour-title" aria-describedby="delete-tour-description">
+          <section
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-tour-title"
+            aria-describedby="delete-tour-description"
+          >
             <h2 id="delete-tour-title">Excluir passeio virtual?</h2>
             <p id="delete-tour-description">
-              <strong>{deleteTarget.title}</strong> será removido definitivamente, junto com fotos, ambientes, setas, rascunhos e histórico. O link público deixará de funcionar. Esta ação não pode ser desfeita. O cadastro do cliente será mantido.
+              <strong>{deleteTarget.title}</strong> será removido
+              definitivamente, junto com fotos, ambientes, setas, rascunhos e
+              histórico. O link público deixará de funcionar. Esta ação não pode
+              ser desfeita. O cadastro do cliente será mantido.
             </p>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              if (busy || deleteConfirmation !== deleteTarget.slug) return;
-              void action(async () => {
-                await deleteProject(deleteTarget.id, deleteConfirmation);
-                setModal(null);
-                setDeleteTarget(null);
-                setNotice("Passeio virtual, arquivos e registros excluídos definitivamente.");
-              });
-            }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (busy || deleteConfirmation !== deleteTarget.slug) return;
+                void action(async () => {
+                  await deleteProject(deleteTarget.id, deleteConfirmation);
+                  setModal(null);
+                  setDeleteTarget(null);
+                  setNotice(
+                    "Passeio virtual, arquivos e registros excluídos definitivamente.",
+                  );
+                });
+              }}
+            >
               <label>
                 Digite <strong>{deleteTarget.slug}</strong> para confirmar
-                <input aria-label="Identificador para confirmar exclusão" autoComplete="off" spellCheck={false} value={deleteConfirmation} disabled={busy} onChange={(e) => setDeleteConfirmation(e.target.value)} />
+                <input
+                  aria-label="Identificador para confirmar exclusão"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={deleteConfirmation}
+                  disabled={busy}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                />
               </label>
-              {error && <p role="alert" className="notice error">{error}</p>}
-              {busy && <p role="status">Excluindo arquivos e registros… Aguarde a conclusão.</p>}
+              {error && (
+                <p role="alert" className="notice error">
+                  {error}
+                </p>
+              )}
+              {busy && (
+                <p role="status">
+                  Excluindo arquivos e registros… Aguarde a conclusão.
+                </p>
+              )}
               <div className="modal-actions">
-                <button type="button" disabled={busy} onClick={() => setModal(null)}>Cancelar</button>
-                <button className="danger" disabled={busy || deleteConfirmation !== deleteTarget.slug}>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setModal(null)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="danger"
+                  disabled={busy || deleteConfirmation !== deleteTarget.slug}
+                >
                   {busy ? "Excluindo…" : "Excluir definitivamente"}
                 </button>
               </div>

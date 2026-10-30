@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { presentationSchema } from "./presentation";
 const id = z.string().uuid();
 export const arrowSchema = z.object({
   id,
@@ -33,6 +34,7 @@ export const sceneSchema = z.object({
 export const snapshotSchema = z
   .object({
     schemaVersion: z.literal(1),
+    presentation: presentationSchema.optional(),
     title: z.string().min(1).max(160),
     description: z.string().max(1000).default(""),
     firstSceneId: id.nullable(),

@@ -62,7 +62,10 @@ import {
 import { uploadPanorama, uploadBrandImage } from "../lib/media";
 import { useHistory } from "../lib/useHistory";
 const Panorama = lazy(() => import("./AdminPanorama"));
-const Viewer = lazy(() => import("./TourViewer"));
+const TourPage = lazy(() =>
+  import("./TourPage").then((m) => ({ default: m.TourPage })),
+);
+const ContentEditor = lazy(() => import("./ContentEditor"));
 type State = Awaited<ReturnType<typeof getEditor>>;
 export function TourEditor({ initial }: { initial: State }) {
   const h = useHistory(initial.draft.snapshot),
@@ -92,6 +95,9 @@ export function TourEditor({ initial }: { initial: State }) {
     [guideTo, setGuideTo] = useState(""),
     [viewSnapshot, setViewSnapshot] = useState<Snapshot | null>(null),
     [flow, setFlow] = useState<ConnectionFlow | null>(null);
+  const [contentOpen, setContentOpen] = useState(
+    () => typeof window !== "undefined" && window.location.hash === "#conteudo",
+  );
   const upload = useRef<HTMLInputElement>(null),
     replace = useRef<HTMLInputElement>(null),
     importFile = useRef<HTMLInputElement>(null),
@@ -524,6 +530,14 @@ export function TourEditor({ initial }: { initial: State }) {
         </div>
         <div className="editor-actions">
           <button
+            aria-label="Conteúdo e layout"
+            disabled={busy || connecting}
+            onClick={() => setContentOpen(true)}
+          >
+            <Settings2 size={17} />
+            <span>Conteúdo e layout</span>
+          </button>
+          <button
             title="Desfazer"
             aria-label="Desfazer"
             disabled={!h.canUndo || busy}
@@ -588,7 +602,11 @@ export function TourEditor({ initial }: { initial: State }) {
               )
                 void execute(async () => {
                   const rev = await persist();
-                  const publication = await publishDraft(project.id, project.slug, rev);
+                  const publication = await publishDraft(
+                    project.id,
+                    project.slug,
+                    rev,
+                  );
                   await reload();
                   setStatus(
                     publication.verified
@@ -1278,6 +1296,14 @@ export function TourEditor({ initial }: { initial: State }) {
               ) : (
                 <div className="inspector-body">
                   <h3>A identidade do tour.</h3>
+                  <button
+                    className="primary wide"
+                    disabled={busy || connecting}
+                    onClick={() => setContentOpen(true)}
+                  >
+                    <Settings2 size={17} />
+                    Editar textos e layout
+                  </button>
                   <label>
                     Título
                     <input
@@ -1972,6 +1998,28 @@ export function TourEditor({ initial }: { initial: State }) {
           </section>
         </div>
       )}
+      {contentOpen && (
+        <Suspense
+          fallback={
+            <div className="preview-modal">
+              <p>Preparando editor de conteúdo…</p>
+            </div>
+          }
+        >
+          <ContentEditor
+            snapshot={config}
+            urls={urls}
+            onClose={() => setContentOpen(false)}
+            onApply={(next) => {
+              commit(next);
+              setContentOpen(false);
+              setStatus(
+                "Conteúdo aplicado ao rascunho. Salve ou publique para disponibilizar as mudanças.",
+              );
+            }}
+          />
+        </Suspense>
+      )}
       {viewSnapshot && (
         <div
           className="preview-modal"
@@ -1988,7 +2036,9 @@ export function TourEditor({ initial }: { initial: State }) {
           </div>
           <ClientOnly>
             <Suspense fallback={<p>Preparando…</p>}>
-              <Viewer snapshot={viewSnapshot} urls={urls} embed />
+              <div className="full-tour-preview">
+                <TourPage tour={{ snapshot: viewSnapshot, urls }} />
+              </div>
             </Suspense>
           </ClientOnly>
         </div>

@@ -1,7 +1,7 @@
-import { createFileRoute, ClientOnly, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { lazy, Suspense } from "react";
+import { TourPage } from "../components/TourPage";
 import { getPublicTour } from "../lib/api";
 import { usePublishedTour } from "../lib/usePublishedTour";
 const loadTour = createServerFn({ method: "GET" })
@@ -14,7 +14,7 @@ const loadTour = createServerFn({ method: "GET" })
     }),
   )
   .handler(async ({ data }) => getPublicTour(data.slug));
-const Viewer = lazy(() => import("../components/TourViewer"));
+
 export const Route = createFileRoute("/t/$slug")({
   staleTime: 0,
   gcTime: 0,
@@ -71,40 +71,5 @@ export const Route = createFileRoute("/t/$slug")({
 });
 function PublicTour() {
   const t = usePublishedTour(Route.useLoaderData());
-  return (
-    <main
-      className="public-page"
-      style={{ "--accent": t.snapshot.branding.accent } as React.CSSProperties}
-    >
-      <header className="public-header">
-        {t.snapshot.branding.logoAssetId && (
-          <img
-            src={t.urls[t.snapshot.branding.logoAssetId]}
-            alt={"Logo " + t.snapshot.title}
-          />
-        )}
-        <div>
-          <h1>{t.snapshot.title}</h1>
-          <span>UMA EXPERIÊNCIA EM 360°</span>
-        </div>
-        <span className="public-powered">voee360tour</span>
-      </header>
-      <ClientOnly fallback={<div className="viewer-placeholder" />}>
-        <Suspense fallback={<div className="viewer-placeholder" />}>
-          <Viewer snapshot={t.snapshot} urls={t.urls} media={t.media} />
-        </Suspense>
-      </ClientOnly>
-      <section className="public-description">
-        <span>ENTRE. EXPLORE. DESCUBRA.</span>
-        <h2>Uma nova perspectiva de {t.snapshot.title}.</h2>
-        <p>
-          {t.snapshot.description ||
-            "Arraste para olhar ao redor. Toque nas setas para descobrir cada ambiente."}
-        </p>
-      </section>
-      <footer className="public-footer">
-        Experiência criada com <strong>voee360tour</strong>
-      </footer>
-    </main>
-  );
+  return <TourPage tour={t} />;
 }

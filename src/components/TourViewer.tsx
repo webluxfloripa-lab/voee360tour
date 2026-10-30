@@ -12,6 +12,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { getPresentation } from "../lib/presentation";
 import type { Asset, Snapshot } from "../lib/model";
 import { signedAssets } from "../lib/api";
 import { useDialogFocus } from "../lib/useDialogFocus";
@@ -28,6 +29,7 @@ export default function TourViewer({
   embed?: boolean;
   media?: Pick<Asset, "id" | "path">[];
 }) {
+  const copy = getPresentation(snapshot).copy;
   const [activeUrls, setActiveUrls] = useState(urls);
   const [renewing, setRenewing] = useState(false);
   const mediaRef = useRef(media);
@@ -43,15 +45,22 @@ export default function TourViewer({
         lastRenewed.current = Date.now();
         setActiveUrls(next);
       })
-      .finally(() => { renewal.current = null; });
+      .finally(() => {
+        renewal.current = null;
+      });
     return renewal.current;
   }
-  useEffect(() => { setActiveUrls(urls); lastRenewed.current = Date.now(); }, [urls]);
+  useEffect(() => {
+    setActiveUrls(urls);
+    lastRenewed.current = Date.now();
+  }, [urls]);
   useEffect(() => {
     let alive = true;
     const refreshIfDue = () => {
       if (alive && Date.now() - lastRenewed.current >= 45 * 60 * 1000)
-        void refreshMedia().catch(() => { /* Keep usable links; retry on return or button. */ });
+        void refreshMedia().catch(() => {
+          /* Keep usable links; retry on return or button. */
+        });
     };
     const interval = window.setInterval(refreshIfDue, 60 * 1000);
     document.addEventListener("visibilitychange", refreshIfDue);
@@ -80,12 +89,15 @@ export default function TourViewer({
     let observer: ResizeObserver | undefined;
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
     const sameTour = previousSnapshot.current === snapshot;
-    if (!sameTour) playingRef.current = snapshot.settings.autoRotate && !preference.matches;
+    if (!sameTour)
+      playingRef.current = snapshot.settings.autoRotate && !preference.matches;
     setPlaying(playingRef.current);
     setLoading(true);
     setFailed(false);
-    const firstScene = sameTour && snapshot.scenes.some((s) => s.id === currentRef.current)
-      ? currentRef.current : snapshot.firstSceneId;
+    const firstScene =
+      sameTour && snapshot.scenes.some((s) => s.id === currentRef.current)
+        ? currentRef.current
+        : snapshot.firstSceneId;
     if (!sameTour) history.current = [];
     previousSnapshot.current = snapshot;
     currentRef.current = firstScene;
@@ -125,7 +137,7 @@ export default function TourViewer({
                   const name =
                     a.label ||
                     snapshot.scenes.find((s) => s.id === a.to)?.name ||
-                    "Próximo ambiente";
+                    copy.next;
                   div.title = name;
                   div.setAttribute("aria-label", "Ir para " + name);
                   div.setAttribute("role", "button");
@@ -157,7 +169,7 @@ export default function TourViewer({
             compass: false,
             ...tourMotion(preference.matches || !playingRef.current),
             mouseZoom: true,
-            strings: { loadingLabel: "Carregando…" },
+            strings: { loadingLabel: copy.loading },
           },
           scenes,
         });
@@ -227,27 +239,32 @@ export default function TourViewer({
       {loading && !failed && (
         <div className="panorama-loading" role="status">
           <span className="spinner" />
-          Carregando ambiente…
+          {copy.loading}
         </div>
       )}
       {failed && (
         <div className="panorama-empty" role="alert">
-          <h2>Não foi possível abrir o panorama.</h2>
-          <button disabled={renewing} onClick={async () => {
-            setRenewing(true);
-            try {
-              await refreshMedia();
-              setAttempt((n) => n + 1);
-            } catch {
-              setFailed(true);
-            } finally { setRenewing(false); }
-          }}>
-            {renewing ? "Carregando…" : "Tentar novamente"}
+          <h2>{copy.error}</h2>
+          <button
+            disabled={renewing}
+            onClick={async () => {
+              setRenewing(true);
+              try {
+                await refreshMedia();
+                setAttempt((n) => n + 1);
+              } catch {
+                setFailed(true);
+              } finally {
+                setRenewing(false);
+              }
+            }}
+          >
+            {renewing ? copy.loading : copy.retry}
           </button>
         </div>
       )}
       <div className="viewer-scene">
-        <small>VOCÊ ESTÁ EM</small>
+        <small>{copy.sceneLabel}</small>
         <strong>{snapshot.scenes.find((s) => s.id === current)?.name}</strong>
       </div>
       <button
@@ -256,15 +273,11 @@ export default function TourViewer({
         aria-expanded={menu}
       >
         <Menu size={18} />
-        Ambientes
+        {copy.menu}
       </button>
       <div className="viewer-controls">
         <button
-          aria-label={
-            playing
-              ? "Pausar movimento automático"
-              : "Iniciar movimento automático"
-          }
+          aria-label={playing ? copy.pause : copy.play}
           onClick={() => {
             playingRef.current = !playingRef.current;
             setPlaying(playingRef.current);
@@ -278,17 +291,17 @@ export default function TourViewer({
         >
           {playing ? <Pause size={18} /> : <Play size={18} />}
         </button>
-        <button aria-label="Voltar ao ponto anterior" onClick={back}>
+        <button aria-label={copy.back} onClick={back}>
           <ArrowLeft size={18} />
         </button>
         <button
-          aria-label="Voltar ao início"
+          aria-label={copy.home}
           onClick={() => go(snapshot.firstSceneId)}
         >
           <Home size={18} />
         </button>
         <button
-          aria-label="Diminuir zoom"
+          aria-label={copy.zoomOut}
           onClick={() =>
             viewer.current?.setHfov(viewer.current.getHfov() + 10, 350)
           }
@@ -296,7 +309,7 @@ export default function TourViewer({
           <Minus size={18} />
         </button>
         <button
-          aria-label="Aumentar zoom"
+          aria-label={copy.zoomIn}
           onClick={() =>
             viewer.current?.setHfov(viewer.current.getHfov() - 10, 350)
           }
@@ -304,19 +317,24 @@ export default function TourViewer({
           <Plus size={18} />
         </button>
         <button
-          aria-label="Tela cheia"
+          aria-label={copy.fullscreen}
           onClick={() => viewer.current?.toggleFullscreen()}
         >
           <Maximize size={18} />
         </button>
       </div>
       {menu && (
-        <aside className="viewer-drawer" role="dialog" aria-modal="true" aria-label="Menu de ambientes">
+        <aside
+          className="viewer-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu de ambientes"
+        >
           <div className="section-heading">
-            <h2>Explore os ambientes</h2>
+            <h2>{copy.menuTitle}</h2>
             <button
               className="icon-button"
-              aria-label="Fechar ambientes"
+              aria-label={copy.closeMenu}
               onClick={() => setMenu(false)}
             >
               <X />
@@ -325,7 +343,7 @@ export default function TourViewer({
           <input
             type="search"
             aria-label="Buscar ambiente"
-            placeholder="Buscar ambiente…"
+            placeholder={copy.search}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

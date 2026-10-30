@@ -4,7 +4,11 @@ import { ArrowRight, Scan, ShieldCheck, Mail, LockKeyhole } from "lucide-react";
 import { Brand } from "../components/Brand";
 import { configured, supabase } from "../lib/supabase";
 import { errorText } from "../lib/model";
-import { ACCESS_RETRY_KEY, remainingSeconds, retrySecondsFromError } from "../lib/admin-access";
+import {
+  ACCESS_RETRY_KEY,
+  remainingSeconds,
+  retrySecondsFromError,
+} from "../lib/admin-access";
 
 const ADMIN_EMAIL = "wowdanielnadal@gmail.com";
 type Step = "closed" | "verify" | "email-sent";
@@ -23,9 +27,13 @@ function Home() {
 
   useEffect(() => {
     try {
-      const stored = Number(window.localStorage.getItem(ACCESS_RETRY_KEY) || "0");
+      const stored = Number(
+        window.localStorage.getItem(ACCESS_RETRY_KEY) || "0",
+      );
       if (Number.isFinite(stored) && stored > 0) setRetryAt(stored);
-    } catch { /* Storage may be unavailable in private windows. */ }
+    } catch {
+      /* Storage may be unavailable in private windows. */
+    }
     setNow(Date.now());
     const interval = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(interval);
@@ -34,20 +42,31 @@ function Home() {
   useEffect(() => {
     if (!configured) return;
     let mounted = true;
-    void supabase.auth.getUser().then(async ({ data, error }) => {
-      if (!mounted || error || !data.user) return;
-      const result = await supabase.rpc("is_super_admin");
-      if (mounted && !result.error && result.data === true)
-        await navigate({ to: "/admin/projetos" });
-    }).catch(() => { /* Public entry remains available while Auth is offline. */ });
-    return () => { mounted = false; };
+    void supabase.auth
+      .getUser()
+      .then(async ({ data, error }) => {
+        if (!mounted || error || !data.user) return;
+        const result = await supabase.rpc("is_super_admin");
+        if (mounted && !result.error && result.data === true)
+          await navigate({ to: "/admin/projetos" });
+      })
+      .catch(() => {
+        /* Public entry remains available while Auth is offline. */
+      });
+    return () => {
+      mounted = false;
+    };
   }, [navigate]);
 
   function recordCooldown(seconds: number) {
     const until = Date.now() + seconds * 1000;
     setRetryAt(until);
     setNow(Date.now());
-    try { window.localStorage.setItem(ACCESS_RETRY_KEY, String(until)); } catch { /* Optional. */ }
+    try {
+      window.localStorage.setItem(ACCESS_RETRY_KEY, String(until));
+    } catch {
+      /* Optional. */
+    }
   }
 
   async function verifyAdmin() {
@@ -65,7 +84,8 @@ function Home() {
     setBusy(true);
     setMessage("");
     try {
-      if (!configured) throw new Error("A conexão do Supabase não está configurada.");
+      if (!configured)
+        throw new Error("A conexão do Supabase não está configurada.");
       const { data, error } = await supabase.auth.getUser();
       if (!error && data.user) {
         await verifyAdmin();
@@ -85,7 +105,8 @@ function Home() {
     setBusy(true);
     setMessage("");
     try {
-      if (!configured) throw new Error("A conexão do Supabase não está configurada.");
+      if (!configured)
+        throw new Error("A conexão do Supabase não está configurada.");
       const { error } = await supabase.auth.signInWithOtp({
         email: ADMIN_EMAIL,
         options: {
@@ -96,12 +117,16 @@ function Home() {
       if (error) throw error;
       recordCooldown(60);
       setStep("email-sent");
-      setMessage("Link solicitado. Verifique a caixa de entrada e o spam da conta administradora. Abra o link no mesmo navegador em que fez o pedido.");
+      setMessage(
+        "Link solicitado. Verifique a caixa de entrada e o spam da conta administradora. Abra o link no mesmo navegador em que fez o pedido.",
+      );
     } catch (error) {
       const seconds = retrySecondsFromError(error);
       if (seconds > 0) {
         recordCooldown(seconds);
-        setMessage("O Supabase está limitando novos e-mails temporariamente. Use o último link recebido ou entre com sua senha abaixo.");
+        setMessage(
+          "O Supabase está limitando novos e-mails temporariamente. Use o último link recebido ou entre com sua senha abaixo.",
+        );
       } else {
         setMessage(errorText(error));
       }
@@ -125,7 +150,11 @@ function Home() {
       await verifyAdmin();
     } catch (error) {
       const plain = errorText(error);
-      setMessage(plain === "Invalid login credentials" ? "Senha incorreta. Confira sua senha ou solicite um link por e-mail." : plain);
+      setMessage(
+        plain === "Invalid login credentials"
+          ? "Senha incorreta. Confira sua senha ou solicite um link por e-mail."
+          : plain,
+      );
     } finally {
       setBusy(false);
     }
@@ -137,26 +166,66 @@ function Home() {
         <Brand />
         <p className="eyebrow">PLATAFORMA DE PASSEIOS VIRTUAIS</p>
         <h1>Gerencie seus passeios 360°.</h1>
-        <p>Acesse o editor para organizar ambientes, conectar setas e publicar seus tours.</p>
+        <p>
+          Acesse o editor para organizar ambientes, conectar setas e publicar
+          seus tours.
+        </p>
         <button
           type="button"
           className="primary wide"
-          onClick={() => { void openAdmin(); }}
+          onClick={() => {
+            void openAdmin();
+          }}
           disabled={busy}
-          style={{ display: "flex", justifyContent: "center", gap: 12, alignItems: "center" }}
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 12,
+            alignItems: "center",
+          }}
         >
-          <Scan size={19} /> {busy ? "Verificando acesso…" : "Acessar Tour 360"} <ArrowRight size={19} />
+          <Scan size={19} />{" "}
+          {busy ? "Verificando acesso…" : "Acessar painel de tours"}{" "}
+          <ArrowRight size={19} />
         </button>
         {step !== "closed" && (
-          <div className="admin-access-options" role="region" aria-label="Verificação administrativa">
-            <p>Este navegador ainda não tem uma sessão administrativa. Confirme sua identidade uma vez para editar seus passeios.</p>
-            <button type="button" className="secondary wide" onClick={() => { void sendLink(); }} disabled={busy || secondsLeft > 0}>
-              <Mail size={17} /> {secondsLeft > 0 ? `Novo link em ${secondsLeft}s` : "Receber link de acesso por e-mail"}
+          <div
+            className="admin-access-options"
+            role="region"
+            aria-label="Verificação administrativa"
+          >
+            <p>
+              Este navegador ainda não tem uma sessão administrativa. Confirme
+              sua identidade uma vez para editar seus passeios.
+            </p>
+            <button
+              type="button"
+              className="secondary wide"
+              onClick={() => {
+                void sendLink();
+              }}
+              disabled={busy || secondsLeft > 0}
+            >
+              <Mail size={17} />{" "}
+              {secondsLeft > 0
+                ? `Novo link em ${secondsLeft}s`
+                : "Receber link de acesso por e-mail"}
             </button>
-            {step === "email-sent" && <p>Já enviou a solicitação? Use o último e-mail recebido, sem pedir outro link.</p>}
+            {step === "email-sent" && (
+              <p>
+                Já enviou a solicitação? Use o último e-mail recebido, sem pedir
+                outro link.
+              </p>
+            )}
             <details>
-              <summary>Entrar com a senha já cadastrada (sem aguardar e-mail)</summary>
-              <form onSubmit={(event) => { void signInWithPassword(event); }}>
+              <summary>
+                Entrar com a senha já cadastrada (sem aguardar e-mail)
+              </summary>
+              <form
+                onSubmit={(event) => {
+                  void signInWithPassword(event);
+                }}
+              >
                 <label htmlFor="admin-password">Senha administrativa</label>
                 <input
                   id="admin-password"
@@ -166,17 +235,29 @@ function Home() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                 />
-                <button className="primary wide" type="submit" disabled={busy || !password}>
+                <button
+                  className="primary wide"
+                  type="submit"
+                  disabled={busy || !password}
+                >
                   <LockKeyhole size={17} /> Entrar no editor
                 </button>
               </form>
             </details>
           </div>
         )}
-        {message && <p role="status" className="notice">{message}</p>}
+        {message && (
+          <p role="status" className="notice">
+            {message}
+          </p>
+        )}
         <div className="login-security">
           <ShieldCheck size={16} />
-          <p>A edição exige uma conta com permissão super_admin. Uma sessão ativa abre o editor diretamente; visitantes não podem alterar nem excluir os tours.</p>
+          <p>
+            A edição exige uma conta com permissão super_admin. Uma sessão ativa
+            abre o editor diretamente; visitantes não podem alterar nem excluir
+            os tours.
+          </p>
         </div>
       </section>
     </main>
