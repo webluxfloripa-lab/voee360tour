@@ -98,7 +98,7 @@ export function AdminShell({
               aria-label="Sair do painel"
               onClick={async () => {
                 await supabase.auth.signOut({ scope: "local" });
-                await nav({ to: "/login" });
+                await nav({ to: "/" });
               }}
             >
               <LogOut size={18} />
