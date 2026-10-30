@@ -20,7 +20,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
           error,
         } = await supabase.auth.getUser();
         if (error || !user) {
-          if (alive) void navigate({ to: "/login" });
+          if (alive) void navigate({ to: "/" });
           return;
         }
         const { data: admin, error: err } =
@@ -38,7 +38,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") void navigate({ to: "/login" });
+      if (event === "SIGNED_OUT") void navigate({ to: "/" });
     });
     return () => {
       alive = false;
@@ -58,7 +58,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         <div className="empty">
           <h1>Acesso restrito</h1>
           <p>{message || "Este painel é exclusivo da superadministradora."}</p>
-          <Link to="/login">Voltar ao login</Link>
+          <Link to="/">Voltar ao acesso</Link>
         </div>
       </main>
     );
