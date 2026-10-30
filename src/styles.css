@@ -4378,3 +4378,13 @@ small {
     max-height: 58dvh;
   }
 }
+
+/* Authentication options are revealed only when the single entry CTA needs verification. */
+.admin-access-options { display: grid; gap: 14px; margin-top: 20px; }
+.admin-access-options > p { margin: 0; line-height: 1.55; }
+.admin-access-options > button { display: flex; justify-content: center; align-items: center; gap: 10px; }
+.admin-access-options details { text-align: left; }
+.admin-access-options summary { cursor: pointer; padding: 10px 0; font-size: .9rem; }
+.admin-access-options form { display: grid; gap: 10px; padding: 12px 0; }
+.admin-access-options form input { width: 100%; box-sizing: border-box; }
+.admin-access-options form button { display: flex; gap: 8px; align-items: center; justify-content: center; }
