@@ -464,7 +464,7 @@ export function TourEditor({ initial }: { initial: State }) {
           } else {
             const scene: Scene = {
               id: crypto.randomUUID(),
-              name: file.name.replace(/\.[^.]+$/, ""),
+              name: file.name.replace(/\.[^.]+$/, "").trim().slice(0, 120) || "Novo ambiente",
               group: "",
               panoramaAssetId: panorama.id,
               thumbnailAssetId: thumbnail.id,
@@ -1530,13 +1530,12 @@ export function TourEditor({ initial }: { initial: State }) {
                   "JSON inválido. Exporte um tour no formato voee360tour.",
                 );
               const assetIds = new Set(assets.map((a) => a.id));
-              if (
-                snap.data.scenes.some((s) =>
-                  [s.panoramaAssetId, s.thumbnailAssetId].some(
-                    (id) => id && !assetIds.has(id),
-                  ),
-                )
-              )
+              const referencedAssets = [
+                snap.data.branding.logoAssetId,
+                snap.data.branding.ogAssetId,
+                ...snap.data.scenes.flatMap((s) => [s.panoramaAssetId, s.thumbnailAssetId]),
+              ];
+              if (referencedAssets.some((id) => id && !assetIds.has(id)))
                 throw new Error(
                   "As mídias deste JSON não pertencem ao projeto. Use duplicar para copiar um tour completo.",
                 );

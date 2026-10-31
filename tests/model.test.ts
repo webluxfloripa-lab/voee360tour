@@ -9,6 +9,7 @@ import {
   snapshotDiff,
 } from "../src/lib/model";
 import seven from "../fixtures/seven-import.json";
+import { presentationSchema } from "../src/lib/presentation";
 const a = "11111111-1111-4111-8111-111111111111",
   b = "22222222-2222-4222-8222-222222222222";
 function fixture() {
@@ -37,6 +38,19 @@ describe("project snapshots", () => {
     expect(snapshotSchema.safeParse(emptySnapshot("Empty")).success).toBe(true);
     expect(snapshotSchema.safeParse(fixture()).success).toBe(true);
   });
+  it("rejects repeated content section IDs in an imported snapshot", () => {
+    const s = fixture();
+    const presentation = presentationSchema.parse({});
+    const block = {
+      id: crypto.randomUUID(), title: "Seção", body: "Texto", cta: "", url: "",
+      visible: true, align: "center" as const, titleSize: 30, bodySize: 16,
+    };
+    presentation.blocks = [block, { ...block, title: "Outra seção" }];
+    s.presentation = presentation;
+    expect(snapshotSchema.safeParse(s).success).toBe(false);
+    presentation.blocks[1]!.id = crypto.randomUUID();
+    expect(snapshotSchema.safeParse(s).success).toBe(true);
+  });
   it("preserves Seven exactly as pending media, 22 scenes 50 arrows 25 independent pairs", () => {
     const parsed = snapshotSchema.parse(seven);
     expect(parsed.scenes).toHaveLength(22);
@@ -58,6 +72,18 @@ describe("project snapshots", () => {
     const s = fixture();
     s.scenes[0]!.links[0]!.pitch = 81;
     expect(snapshotSchema.safeParse(s).success).toBe(false);
+  });
+  it("rejects blank tour and scene names and normalizes their surrounding spaces", () => {
+    const s = fixture();
+    s.title = "   ";
+    expect(snapshotSchema.safeParse(s).success).toBe(false);
+    s.title = " Tour ";
+    s.scenes[0]!.name = " \t ";
+    expect(snapshotSchema.safeParse(s).success).toBe(false);
+    s.scenes[0]!.name = " Entrada ";
+    const parsed = snapshotSchema.parse(s);
+    expect(parsed.title).toBe("Tour");
+    expect(parsed.scenes[0]!.name).toBe("Entrada");
   });
   it("independent return coordinates are retained", () => {
     const s = fixture();

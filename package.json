@@ -7,15 +7,15 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 vite --host 127.0.0.1 --port 3000",
-    "build": "DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 vite build",
+    "dev": "node scripts/run-tool.mjs vite --host 127.0.0.1 --port 3000",
+    "build": "node scripts/run-tool.mjs vite build",
     "start": "node .output/server/index.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src tests scripts cloudflare --max-warnings 0",
     "test": "vitest run",
-    "test:e2e": "DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 playwright test",
+    "test:e2e": "node scripts/run-tool.mjs playwright test",
     "db:test": "node scripts/test-db.mjs",
-    "build:cloudflare": "DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1 NITRO_PRESET=cloudflare_module vite build && node scripts/package-cloudflare.mjs",
+    "build:cloudflare": "node scripts/run-tool.mjs cloudflare-build",
     "deploy:cloudflare": "npx wrangler deploy --config .cloudflare-output/wrangler.json"
   },
   "dependencies": {

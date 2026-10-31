@@ -34,21 +34,35 @@ export default function TourViewer({
   const [renewing, setRenewing] = useState(false);
   const mediaRef = useRef(media);
   mediaRef.current = media;
+  const urlsRef = useRef(urls);
+  urlsRef.current = urls;
   const previousSnapshot = useRef<Snapshot | null>(null);
   const lastRenewed = useRef(Date.now());
-  const renewal = useRef<Promise<void> | null>(null);
+  const renewal = useRef<{
+    media: NonNullable<typeof media>;
+    urls: Record<string, string>;
+    promise: Promise<void>;
+  } | null>(null);
   async function refreshMedia() {
-    if (!mediaRef.current?.length) return;
-    if (renewal.current) return renewal.current;
-    renewal.current = signedAssets(mediaRef.current)
+    const assets = mediaRef.current;
+    const sourceUrls = urlsRef.current;
+    if (!assets?.length) return;
+    if (renewal.current?.media === assets && renewal.current.urls === sourceUrls)
+      return renewal.current.promise;
+    const request = { media: assets, urls: sourceUrls, promise: Promise.resolve() };
+    request.promise = signedAssets(assets)
       .then((next) => {
+        // A newer publication can arrive while signing the previous media list.
+        // Its URLs must not be replaced when that older request finishes.
+        if (mediaRef.current !== assets || urlsRef.current !== sourceUrls) return;
         lastRenewed.current = Date.now();
         setActiveUrls(next);
       })
       .finally(() => {
-        renewal.current = null;
+        if (renewal.current === request) renewal.current = null;
       });
-    return renewal.current;
+    renewal.current = request;
+    return request.promise;
   }
   useEffect(() => {
     setActiveUrls(urls);

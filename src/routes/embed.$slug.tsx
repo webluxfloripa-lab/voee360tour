@@ -4,6 +4,7 @@ import { z } from "zod";
 import { lazy, Suspense } from "react";
 import { getPublicTour } from "../lib/api";
 import { usePublishedTour } from "../lib/usePublishedTour";
+import { TourUnavailable } from "../components/TourUnavailable";
 const load = createServerFn({ method: "GET" })
   .validator(
     z.object({
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/embed/$slug")({
 
 function EmbedRoute() {
   const t = usePublishedTour(Route.useLoaderData());
+  if (!t) return <TourUnavailable />;
   return (
     <main>
       <ClientOnly>

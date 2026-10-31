@@ -22,7 +22,7 @@ export const arrowSchema = z.object({
 });
 export const sceneSchema = z.object({
   id,
-  name: z.string().min(1).max(120),
+  name: z.string().trim().min(1).max(120),
   group: z.string().max(100).default(""),
   panoramaAssetId: id.nullable(),
   thumbnailAssetId: id.nullable(),
@@ -35,7 +35,7 @@ export const snapshotSchema = z
   .object({
     schemaVersion: z.literal(1),
     presentation: presentationSchema.optional(),
-    title: z.string().min(1).max(160),
+    title: z.string().trim().min(1).max(160),
     description: z.string().max(1000).default(""),
     firstSceneId: id.nullable(),
     branding: z.object({
@@ -54,6 +54,13 @@ export const snapshotSchema = z
   .superRefine((v, ctx) => {
     const ids = new Set(v.scenes.map((s) => s.id));
     const arrows = new Set<string>();
+    const blockIds = v.presentation?.blocks.map((block) => block.id) ?? [];
+    if (new Set(blockIds).size !== blockIds.length)
+      ctx.addIssue({
+        code: "custom",
+        path: ["presentation", "blocks"],
+        message: "Cada seção de conteúdo precisa ter um identificador único.",
+      });
     if (ids.size !== v.scenes.length)
       ctx.addIssue({ code: "custom", message: "Ambiente duplicado." });
     if (v.firstSceneId && !ids.has(v.firstSceneId))

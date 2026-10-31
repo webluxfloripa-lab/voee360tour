@@ -14,15 +14,17 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3174",
     headless: true,
     launchOptions: {
-      executablePath: await chromium.executablePath(),
-      args: chromium.args.filter(
+      ...(process.platform === "linux"
+        ? { executablePath: await chromium.executablePath() }
+        : { channel: "chrome" }),
+      args: process.platform === "linux" ? chromium.args.filter(
         (a) =>
           ![
             "--single-process",
             "--disable-web-security",
             "--allow-running-insecure-content",
           ].includes(a),
-      ),
+      ) : [],
     },
   },
   webServer: {

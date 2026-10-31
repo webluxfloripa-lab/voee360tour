@@ -10,8 +10,22 @@ const migration = readdirSync("supabase/migrations").find((x) =>
 await db.exec(readFileSync("supabase/migrations/" + migration, "utf8"));
 for (const m of readdirSync("supabase/migrations")
   .filter((x) => x !== migration)
-  .sort())
+  .sort()) {
+  if (m.endsWith("_restrict_public_workspace_data.sql")) {
+    // Reproduce the live-only public-workspace migration before testing its
+    // repair. This must remove both the grants and permissive RLS policies.
+    await db.exec(`
+      do $$ declare t text; begin
+        foreach t in array array['clients','projects','scenes','hotspots','tour_drafts','tour_versions','publication_events','audit_events','media_assets'] loop
+          execute format('grant select on public.%I to anon',t);
+          execute format('create policy public_workspace_read on public.%I for select to anon using(true)',t);
+        end loop;
+      end $$;
+      create policy public_workspace_media_read on storage.objects for select to anon using(bucket_id='tour-media');
+    `);
+  }
   await db.exec(readFileSync("supabase/migrations/" + m, "utf8"));
+}
 console.log("PASS schema migration");
 const uid = "11111111-1111-4111-8111-111111111111";
 await db.exec(
@@ -194,6 +208,25 @@ await reject(
 );
 await db.query("delete from storage.objects where name like $1", [`%${a}.jpg`]);
 await reject(() => publish(), "missing media blocks publication");
+const unpublishedAsset = crypto.randomUUID();
+const unpublishedPath = `projects/${other}/thumbnail/${unpublishedAsset}.jpg`;
+await db.query(
+  "insert into storage.objects(bucket_id,name,metadata) values('tour-media',$1,'{\"size\":100,\"mimetype\":\"image/jpeg\"}')",
+  [unpublishedPath],
+);
+await rpc("select public.register_asset($1::jsonb)", [
+  JSON.stringify({
+    id: unpublishedAsset,
+    project_id: other,
+    path: unpublishedPath,
+    kind: "thumbnail",
+    width: 480,
+    height: 240,
+    content_type: "image/jpeg",
+    file_size: 100,
+    sha256: "c".repeat(64),
+  }),
+]);
 await db.exec(
   "select set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',false)",
 );
@@ -214,6 +247,27 @@ await db.exec(
 check(
   (await db.query("select * from public.published_tours")).rows.length === 1,
   "anonymous reads only complete published snapshot",
+);
+for (const table of [
+  "clients", "projects", "scenes", "hotspots", "tour_drafts",
+  "tour_versions", "publication_events", "audit_events",
+]) {
+  await reject(
+    () => db.query(`select * from public.${table}`),
+    `anonymous cannot read internal ${table}`,
+  );
+}
+check(
+  (await db.query("select * from public.media_assets where id=$1", [unpublishedAsset])).rows.length === 0,
+  "anonymous cannot read unpublished media metadata",
+);
+check(
+  (await db.query("select * from storage.objects where name=$1", [unpublishedPath])).rows.length === 0,
+  "anonymous cannot list or download unpublished media",
+);
+check(
+  (await db.query("select * from storage.objects where name=$1", [`projects/${project}/thumbnail/${t}.jpg`])).rows.length === 1,
+  "anonymous retains access to published media",
 );
 await reject(
   () => db.query("select public.publish_tour($1,$2)", [project, rev]),

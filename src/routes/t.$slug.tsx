@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { TourPage } from "../components/TourPage";
+import { TourUnavailable } from "../components/TourUnavailable";
 import { getPublicTour } from "../lib/api";
 import { usePublishedTour } from "../lib/usePublishedTour";
 const loadTour = createServerFn({ method: "GET" })
@@ -71,5 +72,5 @@ export const Route = createFileRoute("/t/$slug")({
 });
 function PublicTour() {
   const t = usePublishedTour(Route.useLoaderData());
-  return <TourPage tour={t} />;
+  return t ? <TourPage tour={t} /> : <TourUnavailable />;
 }

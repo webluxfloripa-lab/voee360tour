@@ -92,3 +92,13 @@ it("blocks an invalid title and unsafe call-to-action URLs, and supports legacy 
   expect(apply).not.toHaveBeenCalled();
   expect(screen.getByRole("alert")).toHaveTextContent("Informe um título");
 });
+it("rejects a title made only of spaces instead of applying an empty heading", () => {
+  const apply = vi.fn();
+  render(<ContentEditor snapshot={emptySnapshot("Tour")} urls={{}} onApply={apply} onClose={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText("Conteúdo do texto"), {
+    target: { value: "   " },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Aplicar ao rascunho" }));
+  expect(apply).not.toHaveBeenCalled();
+  expect(screen.getByRole("alert")).toHaveTextContent("Informe um título");
+});

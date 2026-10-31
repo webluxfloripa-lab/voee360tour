@@ -57,3 +57,24 @@ it("recovers expired media with retry and closes the scene dialog with Escape", 
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Ambientes" })).toHaveFocus();
 });
+it("ignores a late media renewal after a newer publication supplies its URLs", async () => {
+  let finishRenewal!: (urls: Record<string, string>) => void;
+  state.sign.mockReturnValue(new Promise<Record<string, string>>((resolve) => {
+    finishRenewal = resolve;
+  }));
+  const view = render(<Viewer snapshot={snapshot} urls={urls} media={media} />);
+  await act(async () => {});
+  await act(async () => { await vi.advanceTimersByTimeAsync(45 * 60 * 1000); });
+  expect(state.sign).toHaveBeenCalledTimes(1);
+
+  const nextSnapshot = { ...snapshot, title: "Nova publicação" };
+  const nextUrls = { [a]: "published-a.jpg", [b]: "published-b.jpg" };
+  const nextMedia = media.map((asset) => ({ ...asset, path: "published/" + asset.path }));
+  view.rerender(<Viewer snapshot={nextSnapshot} urls={nextUrls} media={nextMedia} />);
+  await act(async () => {});
+  await act(async () => {
+    finishRenewal({ [a]: "expired-publication-a.jpg", [b]: "expired-publication-b.jpg" });
+  });
+  expect(state.viewers.at(-1)!.config.scenes[a].panorama).toBe("published-a.jpg");
+  expect(state.viewers.at(-1)!.config.scenes[b].panorama).toBe("published-b.jpg");
+});

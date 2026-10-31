@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { test, expect } from "@playwright/test";
 import { mockPlatform } from "./mock-platform";
 
@@ -15,8 +16,8 @@ test("route audit explains isolated rooms and guides a real bidirectional connec
   await page
     .locator("input[type=file][multiple]")
     .setInputFiles([
-      new URL("../assets/seven-1-image.jpg", import.meta.url).pathname,
-      new URL("../assets/seven-2-image.jpg", import.meta.url).pathname,
+      fileURLToPath(new URL("../assets/seven-1-image.jpg", import.meta.url)),
+      fileURLToPath(new URL("../assets/seven-2-image.jpg", import.meta.url)),
     ]);
   await expect(page.locator(".editor-status")).toContainText(
     "Fotografias enviadas",

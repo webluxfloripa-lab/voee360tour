@@ -3,11 +3,15 @@ import { supabase } from "./supabase";
 import type { Project } from "./model";
 export async function duplicateProject(project: Project) {
   const original = await getEditor(project.id);
+  const titleSuffix = " · cópia";
+  const title = project.title.slice(0, 160 - titleSuffix.length).trimEnd() + titleSuffix;
+  const slugSuffix = "-" + crypto.randomUUID().slice(0, 8);
+  const slug = project.slug.slice(0, 100 - slugSuffix.length).replace(/-+$/, "") + slugSuffix;
   const id = await rpc<string>("manage_project", {
     p_data: {
       client_id: project.client_id,
-      title: project.title + " · cópia",
-      slug: project.slug + "-" + crypto.randomUUID().slice(0, 8),
+      title,
+      slug,
     },
   });
   const map = new Map<string, string>();
@@ -34,7 +38,7 @@ export async function duplicateProject(project: Project) {
   );
   const pairMap = new Map<string, string>();
   const snap = structuredClone(original.draft.snapshot);
-  snap.title = project.title + " · cópia";
+  snap.title = title;
   snap.firstSceneId = snap.firstSceneId
     ? sceneMap.get(snap.firstSceneId)!
     : null;
