@@ -24,6 +24,14 @@ import { deleteProject, getDashboard, rpc, signedAssets } from "../lib/api";
 import { errorText, type Client, type Project } from "../lib/model";
 import { duplicateProject } from "../lib/duplicate";
 type Data = Awaited<ReturnType<typeof getDashboard>>;
+function clientSlugFromName(name: string) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 const labels: Record<string, string> = {
   draft: "Rascunho",
   pending_media: "Mídia pendente",
@@ -49,6 +57,11 @@ function DashboardContent({ section }: { section: string }) {
     [editClient, setEditClient] = useState<Client | null>(null),
     [editProject, setEditProject] = useState<Project | null>(null),
     [busy, setBusy] = useState(false),
+    [quickClientOpen, setQuickClientOpen] = useState(false),
+    [quickClientName, setQuickClientName] = useState(""),
+    [quickClientSlug, setQuickClientSlug] = useState(""),
+    [quickClientError, setQuickClientError] = useState(""),
+    [selectedClientId, setSelectedClientId] = useState(""),
     [thumbs, setThumbs] = useState<Record<string, string>>({}),
     [menu, setMenu] = useState(""),
     [assetUrls, setAssetUrls] = useState<Record<string, string>>({});
@@ -78,6 +91,15 @@ function DashboardContent({ section }: { section: string }) {
   useEffect(() => {
     void load();
   }, []);
+  useEffect(() => {
+    if (modal !== "project") {
+      setQuickClientOpen(false);
+      setQuickClientName("");
+      setQuickClientSlug("");
+      setQuickClientError("");
+      setSelectedClientId("");
+    }
+  }, [modal]);
   const projects =
     data?.projects.filter(
       (p) =>
@@ -101,6 +123,35 @@ function DashboardContent({ section }: { section: string }) {
     } finally {
       setBusy(false);
       setMenu("");
+    }
+  }
+  async function createClientForTour() {
+    const name = quickClientName.trim();
+    const slug = quickClientSlug.trim();
+    if (!name || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
+      setQuickClientError("Informe o nome e um identificador com letras minúsculas, números ou hífens.");
+      return;
+    }
+    setBusy(true);
+    setQuickClientError("");
+    try {
+      await rpc("manage_client", {
+        p_data: { name, slug, email: "", contact: "", active: true, logo_asset_id: null },
+      });
+      const refreshed = await getDashboard();
+      const client = refreshed.clients.find((item) => item.slug === slug);
+      setData(refreshed);
+      if (!client) {
+        throw new Error("Cliente cadastrado, mas não apareceu na lista. Atualize a página para selecioná-lo.");
+      }
+      setSelectedClientId(client.id);
+      setQuickClientOpen(false);
+      setQuickClientName("");
+      setQuickClientSlug("");
+    } catch (e) {
+      setQuickClientError(errorText(e));
+    } finally {
+      setBusy(false);
     }
   }
   return (
@@ -910,7 +961,8 @@ function DashboardContent({ section }: { section: string }) {
                         name="client_id"
                         aria-label="Cliente"
                         required
-                        defaultValue=""
+                        value={selectedClientId}
+                        onChange={(e) => setSelectedClientId(e.target.value)}
                       >
                         <option value="" disabled>
                           Selecione um cliente
@@ -925,17 +977,84 @@ function DashboardContent({ section }: { section: string }) {
                       </select>
                     </label>
                   )}
-                  {!data?.clients.length && !editProject && (
-                    <p className="notice">
-                      Cadastre um cliente primeiro.{" "}
+                  {!editProject && (
+                    <>
                       <button
                         type="button"
-                        className="text-button"
-                        onClick={() => setModal("client")}
+                        className="text-button quick-client-toggle"
+                        aria-expanded={quickClientOpen}
+                        aria-controls="quick-client-fields"
+                        disabled={busy}
+                        onClick={() => {
+                          setQuickClientOpen((open) => !open);
+                          setQuickClientError("");
+                        }}
                       >
-                        Cadastrar cliente
+                        <Plus size={16} />
+                        {quickClientOpen ? "Fechar cadastro" : "Adicionar novo cliente"}
                       </button>
-                    </p>
+                      {!data?.clients.some((client) => client.active) && !quickClientOpen && (
+                        <p className="notice">Cadastre um cliente para criar este tour.</p>
+                      )}
+                      {quickClientOpen && (
+                        <div
+                          id="quick-client-fields"
+                          className="quick-client-panel"
+                          aria-label="Cadastro rápido de cliente"
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              void createClientForTour();
+                            }
+                          }}
+                        >
+                          <strong>Novo cliente</strong>
+                          <p>Cadastre e selecione sem perder as informações do tour.</p>
+                          <label>
+                            Nome do cliente
+                            <input
+                              aria-label="Nome do novo cliente"
+                              maxLength={160}
+                              value={quickClientName}
+                              onChange={(e) => {
+                                setQuickClientName(e.target.value);
+                                setQuickClientSlug(clientSlugFromName(e.target.value));
+                              }}
+                              placeholder="Nostro Fumo"
+                              autoFocus
+                            />
+                          </label>
+                          <label>
+                            Identificador do cliente
+                            <input
+                              aria-label="Identificador do novo cliente"
+                              maxLength={100}
+                              value={quickClientSlug}
+                              onChange={(e) => setQuickClientSlug(e.target.value)}
+                              placeholder="nostro-fumo"
+                            />
+                          </label>
+                          {quickClientError && <p className="notice error" role="alert">{quickClientError}</p>}
+                          <div className="quick-client-actions">
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => setQuickClientOpen(false)}
+                            >
+                              Cancelar cadastro
+                            </button>
+                            <button
+                              type="button"
+                              className="primary"
+                              disabled={busy || !quickClientName.trim() || !quickClientSlug.trim()}
+                              onClick={() => void createClientForTour()}
+                            >
+                              {busy ? "Cadastrando…" : "Cadastrar e selecionar"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -949,7 +1068,7 @@ function DashboardContent({ section }: { section: string }) {
                     busy ||
                     (modal === "project" &&
                       !editProject &&
-                      !data?.clients.length)
+                      (quickClientOpen || !selectedClientId))
                   }
                 >
                   {busy ? "Salvando…" : "Salvar"}
